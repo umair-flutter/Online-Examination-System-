@@ -1,0 +1,14 @@
+# Render Blueprint: Dashboard -> New -> Blueprint -> pick this repository.
+# Keys marked "sync: false" are asked for once in the Render dashboard (never commit real passwords).
+services:
+  - type: web
+    name: online-examination-system
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /Account/Login
+    envVars:
+      - key: PORT
+        value: "8080"
+

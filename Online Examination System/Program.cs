@@ -12,8 +12,14 @@ QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 var builder = WebApplication.CreateBuilder(args);
 
 // ---------- Database & Identity ----------
+// Database:Provider = "Sqlite" runs a self-contained demo database (used for the hosted demo).
+// Anything else uses SQL Server with the DefaultConnection string.
+var useSqlite = string.Equals(builder.Configuration["Database:Provider"], "Sqlite", StringComparison.OrdinalIgnoreCase);
 builder.Services.AddDbContext<ApplicationDbContext>(o =>
-    o.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    if (useSqlite) o.UseSqlite(builder.Configuration.GetConnectionString("Sqlite") ?? "Data Source=app.db");
+    else o.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+});
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(o =>
     {

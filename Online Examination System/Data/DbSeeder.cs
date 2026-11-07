@@ -13,7 +13,8 @@ public static class DbSeeder
         var users = sp.GetRequiredService<UserManager<ApplicationUser>>();
         var roles = sp.GetRequiredService<RoleManager<IdentityRole>>();
 
-        await db.Database.MigrateAsync();
+        // SQL Server uses migrations; the SQLite demo database is created straight from the model.
+        if (db.Database.IsSqlite()) await db.Database.EnsureCreatedAsync(); else await db.Database.MigrateAsync();
 
         foreach (var r in Roles.All)
             if (!await roles.RoleExistsAsync(r)) await roles.CreateAsync(new IdentityRole(r));
