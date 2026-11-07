@@ -1,0 +1,41 @@
+@page
+@model Online_Examination_System.Pages.Admin.AuditLogsModel
+@{ ViewData["Title"] = L["Audit Logs"]; }
+<div class="page-header">
+    <h1 class="h3 mb-0">@L["Audit Logs"]</h1>
+    <partial name="_ExportButtons" />
+</div>
+<div class="card table-card">
+    <div class="card-body border-bottom">
+        <form method="get" class="filter-bar">
+            <input name="search" value="@Model.Search" class="form-control" placeholder="@L["Search..."]" />
+            <select name="actionName" class="form-select" data-autosubmit>
+                <option value="">@L["All actions"]</option>
+                @foreach (var a in Model.Actions) { <option selected="@(a == Model.ActionName)">@a</option> }
+            </select>
+            <input type="date" name="from" value="@Model.From?.ToString("yyyy-MM-dd")" class="form-control" title="@L["From"]" />
+            <input type="date" name="to" value="@Model.To?.ToString("yyyy-MM-dd")" class="form-control" title="@L["To"]" />
+            <button class="btn btn-outline-secondary"><i class="bi bi-search"></i></button>
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle small">
+            <thead><tr><th>@L["Time"]</th><th>@L["User"]</th><th>@L["Action"]</th><th>@L["Entity"]</th><th>@L["Details"]</th><th>IP</th></tr></thead>
+            <tbody>
+            @foreach (var a in Model.Items.Items)
+            {
+                <tr>
+                    <td class="text-nowrap">@a.CreatedAt.ToString("g")</td>
+                    <td>@a.UserName</td>
+                    <td><span class="badge @(a.Action.Contains("Fail") || a.Action.Contains("Block") || a.Action.Contains("Locked") || a.Action == "Delete" ? "text-bg-danger" : "text-bg-light border")">@a.Action</span></td>
+                    <td>@a.Entity @(a.EntityId != null ? "#" + a.EntityId.Truncate(10) : "")</td>
+                    <td>@a.Details.Truncate(100)</td>
+                    <td class="text-muted">@a.IpAddress</td>
+                </tr>
+            }
+            @if (Model.Items.TotalCount == 0) { <tr><td colspan="6"><div class="empty-state"><i class="bi bi-shield-check"></i>@L["No log entries."]</div></td></tr> }
+            </tbody>
+        </table>
+    </div>
+    <div class="card-body pt-0"><partial name="_Pager" model="Model.Items" /></div>
+</div>

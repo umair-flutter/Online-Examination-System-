@@ -1,0 +1,148 @@
+@page
+@model Online_Examination_System.Pages.Dashboard.IndexModel
+@{
+    ViewData["Title"] = L["Dashboard"];
+    var json = new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web);
+    string J(object o) => System.Text.Json.JsonSerializer.Serialize(o, json);
+}
+<div class="page-header">
+    <div>
+        <h1 class="h3 mb-1">@L["Dashboard"]</h1>
+        <p class="text-muted mb-0">@L["Welcome back"], @User.Identity?.Name 👋</p>
+    </div>
+    @if (Model.IsStaff)
+    {
+        <div class="d-flex gap-2">
+            <a asp-page="/Manage/Questions/Edit" class="btn btn-outline-primary"><i class="bi bi-plus-lg"></i> @L["New question"]</a>
+            <a asp-page="/Manage/Exams/Edit" class="btn btn-primary"><i class="bi bi-plus-lg"></i> @L["New exam"]</a>
+        </div>
+    }
+</div>
+
+<div class="row g-3 mb-4">
+    @foreach (var c in Model.Cards)
+    {
+        <div class="col-sm-6 col-xl-3">
+            <a href="@(c.Link ?? "#")" class="text-decoration-none text-body">
+                <div class="card stat-card h-100">
+                    <div class="stat-icon bg-@c.Color-subtle text-@c.Color-emphasis"><i class="bi @c.Icon"></i></div>
+                    <div><div class="stat-value">@c.Value</div><div class="stat-label">@L[c.Label]</div></div>
+                </div>
+            </a>
+        </div>
+    }
+</div>
+
+@if (Model.IsStaff)
+{
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+            <div class="card h-100"><div class="card-header">@L["Submissions in the last 14 days"]</div>
+                <div class="card-body"><div class="chart-box"><canvas id="chartDaily"></canvas></div></div></div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card h-100"><div class="card-header">@L["Pass vs fail"]</div>
+                <div class="card-body"><div class="chart-box"><canvas id="chartPass"></canvas></div></div></div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card h-100"><div class="card-header">@L["Average score per exam (%)"]</div>
+                <div class="card-body"><div class="chart-box"><canvas id="chartAvg"></canvas></div></div></div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card h-100"><div class="card-header">@L["Top 5 questions answered wrongly"]</div>
+                <div class="card-body"><div class="chart-box"><canvas id="chartWrong"></canvas></div></div></div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card h-100"><div class="card-header">@L["Question types"]</div>
+                <div class="card-body"><div class="chart-box"><canvas id="chartTypes"></canvas></div></div></div>
+        </div>
+        <div class="col-lg-8">
+            <div class="card h-100 table-card">
+                <div class="card-header d-flex justify-content-between">@L["Recent submissions"] <a asp-page="/Manage/Results" class="small">@L["View all"]</a></div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead><tr><th>@L["Student"]</th><th>@L["Exam"]</th><th>@L["Score"]</th><th>@L["Status"]</th><th>@L["Submitted"]</th></tr></thead>
+                        <tbody>
+                        @foreach (var a in Model.RecentAttempts)
+                        {
+                            <tr>
+                                <td>@a.Student.FullName</td>
+                                <td><a asp-page="/Manage/Exams/Attempt" asp-route-id="@a.Id">@a.Exam.Title.Truncate(30)</a></td>
+                                <td>@a.Percentage.ToString("0.#")%</td>
+                                <td>
+                                    @if (a.Status == AttemptStatus.Graded) { <span class="badge @(a.IsPassed ? "text-bg-success" : "text-bg-danger")">@L[a.IsPassed ? "Passed" : "Failed"]</span> }
+                                    else { <partial name="_StatusBadge" model="a.Status" /> }
+                                </td>
+                                <td class="small text-muted">@a.SubmittedAt?.ToString("g")</td>
+                            </tr>
+                        }
+                        @if (Model.RecentAttempts.Count == 0) { <tr><td colspan="5" class="text-center text-muted py-4">@L["No submissions yet."]</td></tr> }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="card h-100"><div class="card-header">@L["My scores"]</div>
+                <div class="card-body">
+                    @if (Model.MyScores.Values.Count == 0) { <div class="empty-state"><i class="bi bi-graph-up"></i>@L["Your results will appear here after you finish an exam."]</div> }
+                    else { <div class="chart-box"><canvas id="chartMine"></canvas></div> }
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between">@L["Upcoming & open exams"] <a asp-page="/Student/Exams" class="small">@L["View all"]</a></div>
+                <ul class="list-group list-group-flush">
+                    @foreach (var e in Model.Upcoming)
+                    {
+                        var open = e.StartDate <= DateTime.Now;
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-semibold">@e.Title</div>
+                                <div class="small text-muted">@e.Subject.Name · @e.DurationMinutes @L["min"]</div>
+                            </div>
+                            @if (open) { <a asp-page="/Student/Start" asp-route-id="@e.Id" class="btn btn-sm btn-primary">@L["Open"]</a> }
+                            else { <span class="badge text-bg-light border">@e.StartDate.ToString("g")</span> }
+                        </li>
+                    }
+                    @if (Model.Upcoming.Count == 0) { <li class="list-group-item text-muted text-center py-4">@L["No upcoming exams."]</li> }
+                </ul>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+        (function () {
+            applyChartTheme();
+            var c = window.chartColors;
+            function make(id, cfg) { var el = document.getElementById(id); if (el) new Chart(el, cfg); }
+            var base = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } };
+            @if (Model.IsStaff)
+            {
+                <text>
+                make('chartDaily', { type: 'line', data: { labels: @Html.Raw(J(Model.AttemptsPerDay.Labels)), datasets: [{ data: @Html.Raw(J(Model.AttemptsPerDay.Values)), borderColor: c[0], backgroundColor: 'rgba(79,70,229,.12)', fill: true, tension: .35 }] }, options: Object.assign({}, base, { scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }) });
+                make('chartPass', { type: 'doughnut', data: { labels: @Html.Raw(J(Model.PassFail.Labels.Select(x => L[x]))), datasets: [{ data: @Html.Raw(J(Model.PassFail.Values)), backgroundColor: [c[1], c[3]] }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '65%' } });
+                make('chartAvg', { type: 'bar', data: { labels: @Html.Raw(J(Model.AvgPerExam.Labels)), datasets: [{ data: @Html.Raw(J(Model.AvgPerExam.Values)), backgroundColor: c[0], borderRadius: 6 }] }, options: Object.assign({}, base, { scales: { y: { beginAtZero: true, max: 100 } } }) });
+                make('chartWrong', { type: 'bar', data: { labels: @Html.Raw(J(Model.TopWrong.Select(w => w.Text.Truncate(30)))), datasets: [{ label: '@L["Wrong answers"]', data: @Html.Raw(J(Model.TopWrong.Select(w => w.Wrong))), backgroundColor: c[3], borderRadius: 6 }] }, options: Object.assign({}, base, { indexAxis: 'y', scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } }) });
+                make('chartTypes', { type: 'pie', data: { labels: @Html.Raw(J(Model.QuestionTypes.Labels.Select(x => L[x]))), datasets: [{ data: @Html.Raw(J(Model.QuestionTypes.Values)), backgroundColor: c }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } } });
+                </text>
+            }
+            else
+            {
+                <text>
+                make('chartMine', { type: 'line', data: { labels: @Html.Raw(J(Model.MyScores.Labels)), datasets: [{ data: @Html.Raw(J(Model.MyScores.Values)), borderColor: c[0], backgroundColor: 'rgba(79,70,229,.12)', fill: true, tension: .3, pointRadius: 5 }] }, options: Object.assign({}, base, { scales: { y: { beginAtZero: true, max: 100 } } }) });
+                </text>
+            }
+            document.addEventListener('themechange', function () { location.reload(); });
+        })();
+    </script>
+}

@@ -1,0 +1,32 @@
+@page "{id:int?}"
+@model Online_Examination_System.Pages.Admin.Subjects.EditModel
+@{ var title = Model.Input.Id == 0 ? L["New subject"] : L["Edit subject"]; ViewData["Title"] = title; }
+<div class="page-header"><h1 class="h3 mb-0">@title</h1></div>
+<div class="card" style="max-width:640px">
+    <div class="card-body">
+        <form method="post">
+            <input asp-for="Input.Id" type="hidden" />
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label asp-for="Input.Code" class="form-label">@L["Code"]</label>
+                    <input asp-for="Input.Code" class="form-control text-uppercase" />
+                    <span asp-validation-for="Input.Code" class="text-danger small"></span>
+                </div>
+                <div class="col-md-8">
+                    <label asp-for="Input.Name" class="form-label">@L["Name"]</label>
+                    <input asp-for="Input.Name" class="form-control" />
+                    <span asp-validation-for="Input.Name" class="text-danger small"></span>
+                </div>
+                <div class="col-12">
+                    <label asp-for="Input.Description" class="form-label">@L["Description"]</label>
+                    <textarea asp-for="Input.Description" class="form-control" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="mt-4 d-flex gap-2">
+                <button class="btn btn-primary"><i class="bi bi-check2"></i> @L["Save"]</button>
+                <a asp-page="Index" class="btn btn-outline-secondary">@L["Cancel"]</a>
+            </div>
+        </form>
+    </div>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

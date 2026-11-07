@@ -1,0 +1,67 @@
+@page
+@model Online_Examination_System.Pages.Manage.Questions.IndexModel
+@{ ViewData["Title"] = L["Question Bank"]; }
+<div class="page-header">
+    <div>
+        <h1 class="h3 mb-1">@L["Question Bank"]</h1>
+        @if (!User.IsAdmin()) { <p class="text-muted small mb-0">@L["You can see the questions that you created."]</p> }
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a asp-page="Import" class="btn btn-outline-secondary"><i class="bi bi-upload"></i> @L["Import"]</a>
+        <partial name="_ExportButtons" />
+        <a asp-page="Edit" class="btn btn-primary"><i class="bi bi-plus-lg"></i> @L["New question"]</a>
+    </div>
+</div>
+<div class="card table-card">
+    <div class="card-body border-bottom">
+        <form method="get" class="filter-bar">
+            <input name="search" value="@Model.Search" class="form-control" placeholder="@L["Search text or tag..."]" />
+            <select name="subjectId" class="form-select" data-autosubmit>
+                <option value="">@L["All subjects"]</option>
+                @foreach (var s in Model.Subjects) { <option value="@s.Value" selected="@(s.Value == Model.SubjectId?.ToString())">@s.Text</option> }
+            </select>
+            <select name="type" class="form-select" data-autosubmit>
+                <option value="">@L["All types"]</option>
+                @foreach (var t in Enum.GetValues<QuestionType>()) { <option value="@t" selected="@(Model.Type == t)">@L[t.DisplayName()]</option> }
+            </select>
+            <select name="difficulty" class="form-select" data-autosubmit>
+                <option value="">@L["All levels"]</option>
+                @foreach (var d in Enum.GetValues<Difficulty>()) { <option value="@d" selected="@(Model.Difficulty == d)">@L[d.ToString()]</option> }
+            </select>
+            <button class="btn btn-outline-secondary"><i class="bi bi-search"></i></button>
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead><tr><th>@L["Question"]</th><th>@L["Type"]</th><th>@L["Subject"]</th><th>@L["Marks"]</th><th>@L["Used"]</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var q in Model.Items.Items)
+            {
+                <tr>
+                    <td style="min-width:280px">
+                        <div>@q.Text.Truncate(110)</div>
+                        <div class="small text-muted mt-1">
+                            <partial name="_StatusBadge" model="q.Difficulty" />
+                            @if (!string.IsNullOrEmpty(q.ImagePath)) { <i class="bi bi-image ms-1" title="@L["Has image"]"></i> }
+                            @if (!string.IsNullOrEmpty(q.Tags)) { <span class="ms-1">#@q.Tags.Replace(",", " #")</span> }
+                            @if (User.IsAdmin()) { <span class="ms-1">· @q.CreatedBy.FullName</span> }
+                        </div>
+                    </td>
+                    <td><partial name="_StatusBadge" model="q.Type" /></td>
+                    <td><span class="badge text-bg-light border">@q.Subject.Code</span></td>
+                    <td>@q.Marks</td>
+                    <td>@Model.UsageCount.GetValueOrDefault(q.Id) @L["exam(s)"]</td>
+                    <td class="text-end text-nowrap">
+                        <a asp-page="Edit" asp-route-id="@q.Id" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i></a>
+                        <form method="post" asp-page-handler="Delete" asp-route-id="@q.Id" class="d-inline">
+                            <button class="btn btn-sm btn-outline-danger" data-confirm="@L["Delete this question?"]"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            @if (Model.Items.TotalCount == 0) { <tr><td colspan="6"><div class="empty-state"><i class="bi bi-collection"></i>@L["No questions found."]</div></td></tr> }
+            </tbody>
+        </table>
+    </div>
+    <div class="card-body pt-0"><partial name="_Pager" model="Model.Items" /></div>
+</div>

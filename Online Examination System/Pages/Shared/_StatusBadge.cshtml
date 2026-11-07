@@ -1,0 +1,19 @@
+@model object
+@switch (Model)
+{
+    case ExamStatus s:
+        <span class="badge @(s switch { ExamStatus.Published => "text-bg-success", ExamStatus.Draft => "text-bg-secondary", _ => "text-bg-dark" })">@L[s.ToString()]</span>
+        break;
+    case AttemptStatus a:
+        <span class="badge @(a switch { AttemptStatus.Graded => "text-bg-primary", AttemptStatus.PendingMarking => "text-bg-warning", _ => "text-bg-info" })">@L[a.DisplayName()]</span>
+        break;
+    case UserStatus u:
+        <span class="badge @(u switch { UserStatus.Active => "text-bg-success", UserStatus.Inactive => "text-bg-secondary", _ => "text-bg-danger" })">@L[u.ToString()]</span>
+        break;
+    case QuestionType t:
+        <span class="badge rounded-pill qtype qtype-@((int)t)">@L[t.DisplayName()]</span>
+        break;
+    case Difficulty d:
+        <span class="badge rounded-pill @(d switch { Difficulty.Easy => "bg-success-subtle text-success-emphasis", Difficulty.Medium => "bg-warning-subtle text-warning-emphasis", _ => "bg-danger-subtle text-danger-emphasis" })">@L[d.ToString()]</span>
+        break;
+}

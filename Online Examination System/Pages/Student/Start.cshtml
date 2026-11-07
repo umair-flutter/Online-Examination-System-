@@ -1,0 +1,82 @@
+@page "{id:int}"
+@model Online_Examination_System.Pages.Student.StartModel
+@{ var e = Model.Exam; ViewData["Title"] = e.Title; }
+<div class="mx-auto" style="max-width:820px">
+    <a asp-page="Exams" class="small text-decoration-none"><i class="bi bi-arrow-left"></i> @L["My Exams"]</a>
+    <div class="card mt-2">
+        <div class="card-body p-4">
+            <span class="badge text-bg-light border mb-2">@e.Subject.Name</span>
+            <h1 class="h3">@e.Title</h1>
+            @if (!string.IsNullOrEmpty(e.Description)) { <p class="text-muted">@e.Description</p> }
+            <div class="row g-3 text-center my-3">
+                @foreach (var (icon, value, label) in new[]
+                {
+                    ("bi-list-ol", Model.QuestionCount.ToString(), "Questions"),
+                    ("bi-star", Model.TotalMarks.ToString("0.##"), "Total marks"),
+                    ("bi-stopwatch", e.DurationMinutes + " " + L["min"], "Time limit"),
+                    ("bi-flag", e.PassPercentage + "%", "Pass mark"),
+                })
+                {
+                    <div class="col-6 col-md-3"><div class="border rounded p-3 h-100"><i class="bi @icon fs-4 text-primary"></i><div class="fw-bold fs-5">@value</div><div class="small text-muted">@L[label]</div></div></div>
+                }
+            </div>
+            <div class="small text-muted mb-3"><i class="bi bi-calendar-range"></i> @L["Available"]: @e.StartDate.ToString("g") → @e.EndDate.ToString("g") · @L["Attempts"]: @Model.Attempts.Count / @(e.MaxAttempts == 0 ? "∞" : e.MaxAttempts.ToString())</div>
+
+            <h2 class="h6 mt-4">@L["Rules"]</h2>
+            <ul class="small">
+                <li>@L["The timer starts as soon as you click Start and keeps running even if you close the browser."]</li>
+                <li>@L["You must save an answer before moving to the next question. Questions cannot be skipped."]</li>
+                @if (!e.AllowBackNavigation) { <li><b>@L["You cannot go back to previous questions."]</b></li> }
+                <li>@L["The exam is submitted automatically when the time is up."]</li>
+                @if (e.NegativeMarking > 0) { <li class="text-danger">@L["Wrong answers to objective questions lose {0}% of the question's marks.", e.NegativeMarking * 100]</li> }
+                @if (e.EnableProctoring)
+                {
+                    <li class="text-danger">@L["This exam is proctored: it runs in full screen, copy & paste is disabled, and leaving the page or full screen is recorded."]
+                        @if (e.MaxViolations > 0) { <b>@L["After {0} violations the exam is submitted automatically.", e.MaxViolations]</b> }</li>
+                }
+            </ul>
+            @if (!string.IsNullOrEmpty(e.Instructions)) { <div class="alert alert-info small text-pre">@e.Instructions</div> }
+
+            @if (Model.Availability == ExamAvailability.Open)
+            {
+                <form method="post" class="mt-4" id="startForm">
+                    <div asp-validation-summary="All" class="alert alert-danger py-2 small"></div>
+                    @if (!string.IsNullOrEmpty(e.AccessCode))
+                    {
+                        <div class="mb-3" style="max-width:320px">
+                            <label asp-for="AccessCode" class="form-label">@L["Access code"]</label>
+                            <input asp-for="AccessCode" class="form-control" autocomplete="off" required />
+                        </div>
+                    }
+                    <div class="form-check mb-3">
+                        <input asp-for="Agree" class="form-check-input" required />
+                        <label asp-for="Agree" class="form-check-label">@L["I have read the rules and I am ready to start."]</label>
+                    </div>
+                    <button class="btn btn-primary btn-lg"><i class="bi bi-play-fill"></i> @L["Start exam"]</button>
+                </form>
+            }
+            else
+            {
+                <div class="alert alert-secondary mt-4 mb-0">
+                    @(Model.Availability switch
+                    {
+                        ExamAvailability.NotStarted => L["This exam opens on {0}.", e.StartDate.ToString("g")],
+                        ExamAvailability.Closed => L["This exam is closed."],
+                        _ => L["You have used all your attempts for this exam."]
+                    })
+                </div>
+            }
+        </div>
+    </div>
+</div>
+@section Scripts {
+    @if (e.EnableProctoring)
+    {
+        <script>
+            // Enter full screen with the click that starts the exam (browsers require a user gesture).
+            document.getElementById('startForm')?.addEventListener('submit', function () {
+                try { document.documentElement.requestFullscreen && document.documentElement.requestFullscreen(); } catch (e) { }
+            });
+        </script>
+    }
+}

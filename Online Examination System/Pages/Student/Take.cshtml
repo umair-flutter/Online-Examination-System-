@@ -1,0 +1,226 @@
+@page "{id:int}"
+@model Online_Examination_System.Pages.Student.TakeModel
+@{
+    Layout = "_ExamLayout";
+    var exam = Model.Attempt.Exam;
+    ViewData["Title"] = exam.Title;
+    var answeredCount = Model.AnsweredIndexes.Count;
+    var proctor = exam.EnableProctoring;
+}
+@section TopRight {
+    <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-stopwatch fs-5"></i>
+        <span class="exam-timer" id="timer" data-seconds="@Model.RemainingSeconds">--:--</span>
+    </div>
+}
+@Html.AntiForgeryToken()
+
+@if (proctor)
+{
+    <div id="fsOverlay" class="position-fixed top-0 start-0 w-100 h-100 bg-body d-none" style="z-index:2000">
+        <div class="d-grid h-100 text-center" style="place-items:center">
+            <div>
+                <i class="bi bi-arrows-fullscreen display-4 text-primary"></i>
+                <h2 class="h4 mt-3">@L["This exam must be taken in full screen"]</h2>
+                <p class="text-muted">@L["Leaving full screen or switching tabs is recorded as a violation."]</p>
+                <button class="btn btn-primary btn-lg" id="fsBtn" type="button">@L["Return to full screen"]</button>
+            </div>
+        </div>
+    </div>
+    <div class="alert alert-danger small py-2 d-flex align-items-center gap-2">
+        <i class="bi bi-eye"></i> @L["Proctored exam"] · @L["Violations"]: <b id="vCount">@Model.Attempt.ViolationCount</b>@(exam.MaxViolations > 0 ? " / " + exam.MaxViolations : "")
+    </div>
+}
+
+<div class="row g-4 @(proctor ? "no-select" : "")">
+    <div class="col-lg-8">
+        <div class="mb-3">
+            <div class="d-flex justify-content-between small text-muted mb-1">
+                <span>@L["Answered"] @answeredCount / @Model.Total</span>
+                <span>@(Model.Total == 0 ? 0 : answeredCount * 100 / Model.Total)%</span>
+            </div>
+            <div class="progress" style="height:6px"><div class="progress-bar" style="width:@(Model.Total == 0 ? 0 : answeredCount * 100 / Model.Total)%"></div></div>
+        </div>
+
+        @if (Model.Review)
+        {
+            <div class="card">
+                <div class="card-body text-center p-5">
+                    <i class="bi bi-check2-circle display-4 text-success"></i>
+                    <h2 class="h4 mt-3">@L["All questions answered"]</h2>
+                    <p class="text-muted">@L["You can still review your answers while time remains. Once submitted, you cannot change them."]</p>
+                    <form method="post" asp-page-handler="Submit" asp-route-id="@Model.Attempt.Id">
+                        <button class="btn btn-success btn-lg" data-confirm="@L["Submit the exam now? You will not be able to change your answers."]"><i class="bi bi-send"></i> @L["Submit exam"]</button>
+                    </form>
+                    @if (exam.AllowBackNavigation)
+                    {
+                        <a asp-route-id="@Model.Attempt.Id" asp-route-q="0" class="btn btn-link mt-2">@L["Review from the first question"]</a>
+                    }
+                </div>
+            </div>
+        }
+        else
+        {
+            var q = Model.Question;
+            var selected = Model.Answer.SelectedIds;
+            var multi = q.Type == QuestionType.MultipleAnswer;
+            <form method="post" asp-page-handler="Save" asp-route-id="@Model.Attempt.Id" id="answerForm">
+                <input type="hidden" name="index" value="@Model.Index" />
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>@L["Question"] @(Model.Index + 1) @L["of"] @Model.Total</span>
+                        <span class="d-flex gap-2 align-items-center"><partial name="_StatusBadge" model="q.Type" /><span class="badge text-bg-light border">@q.Marks @L["marks"]</span></span>
+                    </div>
+                    <div class="card-body">
+                        <p class="fs-5 text-pre">@q.Text</p>
+                        @if (!string.IsNullOrEmpty(q.ImagePath)) { <img src="@q.ImagePath" alt="" class="img-fluid rounded border mb-3" style="max-height:320px" /> }
+                        @if (multi) { <p class="small text-muted"><i class="bi bi-info-circle"></i> @L["Select all answers that apply."]</p> }
+
+                        @if (q.HasChoices)
+                        {
+                            foreach (var c in Model.Choices)
+                            {
+                                <label class="choice-option">
+                                    <input class="form-check-input" type="@(multi ? "checkbox" : "radio")" name="choiceIds" value="@c.Id" checked="@selected.Contains(c.Id)" />
+                                    <span>@(q.Type == QuestionType.TrueFalse ? L[c.Text] : c.Text)</span>
+                                </label>
+                            }
+                        }
+                        else if (q.Type == QuestionType.ShortAnswer)
+                        {
+                            <input name="textAnswer" value="@Model.Answer.TextAnswer" class="form-control form-control-lg" maxlength="500" autocomplete="off" placeholder="@L["Type your answer"]" />
+                        }
+                        else
+                        {
+                            <textarea name="textAnswer" class="form-control" rows="10" maxlength="20000" placeholder="@L["Write your answer here"]" id="essay">@Model.Answer.TextAnswer</textarea>
+                            <div class="small text-muted mt-1"><span id="wc">0</span> @L["words"]</div>
+                        }
+                        @if (Model.Answer.IsAnswered) { <div class="small text-success mt-2"><i class="bi bi-check-circle-fill"></i> @L["Answer saved"] @Model.Answer.AnsweredAt?.ToString("T")</div> }
+                    </div>
+                    <div class="card-footer d-flex justify-content-between">
+                        @if (exam.AllowBackNavigation && Model.Index > 0)
+                        {
+                            <button class="btn btn-outline-secondary" name="go" value="prev"><i class="bi bi-chevron-left"></i> @L["Previous"]</button>
+                        }
+                        else { <span></span> }
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-primary" name="go" value="stay"><i class="bi bi-save"></i> @L["Save"]</button>
+                            <button class="btn btn-primary" name="go" value="next">@(Model.Index == Model.Total - 1 ? L["Save & finish"] : L["Save & Next"]) <i class="bi bi-chevron-right"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        }
+    </div>
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">@L["Questions"]</div>
+            <div class="card-body">
+                <div class="q-palette">
+                    @for (var i = 0; i < Model.Total; i++)
+                    {
+                        var reachable = exam.AllowBackNavigation ? i <= Model.FirstUnanswered : i == Math.Min(Model.FirstUnanswered, Model.Total - 1);
+                        var cls = (Model.AnsweredIndexes.Contains(i) ? "answered " : "") + (!Model.Review && i == Model.Index ? "current " : "");
+                        if (reachable) { <a asp-route-id="@Model.Attempt.Id" asp-route-q="@i" class="@cls">@(i + 1)</a> }
+                        else { <span class="@cls locked" title="@L["Answer the current question first"]">@(i + 1)</span> }
+                    }
+                </div>
+                <div class="small text-muted mt-3">
+                    <span class="badge bg-success">&nbsp;</span> @L["Answered"] &nbsp;
+                    <span class="badge border text-body">&nbsp;</span> @L["Not answered"]
+                </div>
+                @if (Model.AllAnswered && !Model.Review)
+                {
+                    <a asp-route-id="@Model.Attempt.Id" asp-route-review="true" class="btn btn-success w-100 mt-3"><i class="bi bi-send"></i> @L["Finish & submit"]</a>
+                }
+            </div>
+        </div>
+        <div class="small text-muted mt-3"><i class="bi bi-info-circle"></i> @L["Your answers are saved on the server. If you lose your connection, open the exam again to continue."]</div>
+    </div>
+</div>
+
+<form method="post" asp-page-handler="Timeout" asp-route-id="@Model.Attempt.Id" id="timeoutForm"></form>
+
+@section Scripts {
+    <script>
+        (function () {
+            // ---------- Countdown (server is authoritative; this just displays and triggers the auto-submit) ----------
+            var el = document.getElementById('timer');
+            var end = Date.now() + parseInt(el.dataset.seconds, 10) * 1000;
+            var submitted = false;
+            function tick() {
+                var s = Math.max(0, Math.round((end - Date.now()) / 1000));
+                var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+                el.textContent = (h > 0 ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(sec).padStart(2, '0');
+                el.classList.toggle('warning', s <= 60);
+                if (s === 0 && !submitted) { submitted = true; leaving = true; document.getElementById('timeoutForm').submit(); }
+            }
+            tick(); setInterval(tick, 500);
+
+            // ---------- Warn about unsaved changes ----------
+            var dirty = false, leaving = false;
+            var form = document.getElementById('answerForm');
+            if (form) {
+                form.addEventListener('input', function () { dirty = true; });
+                form.addEventListener('submit', function () { leaving = true; });
+            }
+            document.querySelectorAll('form').forEach(function (f) { f.addEventListener('submit', function () { leaving = true; }); });
+            document.querySelectorAll('.q-palette a').forEach(function (a) { a.addEventListener('click', function (e) {
+                if (dirty && !confirm('@L["You have an unsaved answer. Leave this question without saving?"]')) e.preventDefault(); else leaving = true;
+            }); });
+
+            // ---------- Essay word counter ----------
+            var essay = document.getElementById('essay');
+            if (essay) {
+                var wc = document.getElementById('wc');
+                var count = function () { wc.textContent = (essay.value.trim().match(/\S+/g) || []).length; };
+                essay.addEventListener('input', count); count();
+            }
+
+            @if (proctor)
+            {
+                <text>
+                // ---------- Proctoring ----------
+                var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                var url = '?handler=Violation&id=@Model.Attempt.Id';
+                var last = 0;
+                function report(type, details) {
+                    if (leaving || submitted) return;
+                    var now = Date.now();
+                    if (now - last < 1500 && type !== 'copy' && type !== 'paste') return; // blur + hidden fire together
+                    last = now;
+                    var body = new URLSearchParams({ type: type, details: details || '' });
+                    fetch(location.pathname + url, { method: 'POST', headers: { 'RequestVerificationToken': token, 'Content-Type': 'application/x-www-form-urlencoded' }, body: body, credentials: 'same-origin' })
+                        .then(function (r) { return r.json(); })
+                        .then(function (d) {
+                            document.getElementById('vCount').textContent = d.count;
+                            if (d.submitted) { leaving = true; location.href = '/Student/Result/@Model.Attempt.Id'; }
+                        }).catch(function () { });
+                }
+                document.addEventListener('visibilitychange', function () { if (document.hidden) report('tab-hidden', 'Switched tab or minimised'); });
+                window.addEventListener('blur', function () { report('window-blur', 'Window lost focus'); });
+                ['copy', 'cut', 'paste'].forEach(function (ev) {
+                    document.addEventListener(ev, function (e) { e.preventDefault(); report(ev === 'cut' ? 'copy' : ev, ev + ' blocked'); });
+                });
+                document.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+                document.addEventListener('keydown', function (e) {
+                    if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && ['I', 'J', 'C'].indexOf(e.key.toUpperCase()) >= 0)) { e.preventDefault(); report('devtools', 'Developer tools shortcut'); }
+                });
+                var overlay = document.getElementById('fsOverlay');
+                function checkFs() {
+                    var fs = !!document.fullscreenElement;
+                    overlay.classList.toggle('d-none', fs || !document.documentElement.requestFullscreen);
+                }
+                document.addEventListener('fullscreenchange', function () {
+                    if (!document.fullscreenElement) report('fullscreen-exit', 'Left full screen');
+                    checkFs();
+                });
+                document.getElementById('fsBtn').addEventListener('click', function () { document.documentElement.requestFullscreen().catch(function () { }); });
+                // Re-entering full screen after a page navigation needs a click, so the overlay asks for it.
+                checkFs();
+                </text>
+            }
+            window.addEventListener('beforeunload', function (e) { if (dirty && !leaving) { e.preventDefault(); e.returnValue = ''; } });
+        })();
+    </script>
+}

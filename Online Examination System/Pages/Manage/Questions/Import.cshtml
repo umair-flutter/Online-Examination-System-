@@ -1,0 +1,38 @@
+@page
+@model Online_Examination_System.Pages.Manage.Questions.ImportModel
+@{ ViewData["Title"] = L["Import questions"]; }
+<div class="page-header">
+    <div>
+        <a asp-page="Index" class="small text-decoration-none"><i class="bi bi-arrow-left"></i> @L["Question Bank"]</a>
+        <h1 class="h3 mb-0">@L["Import questions from Excel"]</h1>
+    </div>
+</div>
+@if (Model.Result != null) { <partial name="_ImportResult" model="Model.Result" /> }
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-body">
+                <ol class="small text-muted">
+                    <li>@L["Download the Excel template."] <a asp-page-handler="Template"><i class="bi bi-file-earmark-excel"></i> questions-template.xlsx</a></li>
+                    <li>@L["Fill one question per row. The Instructions sheet explains every column."]</li>
+                    <li>@L["Upload the file."]</li>
+                </ol>
+                <form method="post" enctype="multipart/form-data">
+                    <div class="input-group">
+                        <input asp-for="Upload" type="file" accept=".xlsx" class="form-control" required />
+                        <button class="btn btn-primary"><i class="bi bi-upload"></i> @L["Import"]</button>
+                    </div>
+                    <span asp-validation-for="Upload" class="text-danger small"></span>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header">@L["Subject codes"]</div>
+            <ul class="list-group list-group-flush small">
+                @foreach (var s in Model.Subjects) { <li class="list-group-item d-flex justify-content-between"><code>@s.Code</code><span>@s.Name</span></li> }
+            </ul>
+        </div>
+    </div>
+</div>

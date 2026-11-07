@@ -1,0 +1,93 @@
+@page
+@model Online_Examination_System.Pages.Manage.Exams.IndexModel
+@{ ViewData["Title"] = L["Exams"]; var now = DateTime.Now; }
+<div class="page-header">
+    <div>
+        <h1 class="h3 mb-1">@L["Exams"]</h1>
+        @if (!User.IsAdmin()) { <p class="text-muted small mb-0">@L["You can see the exams that you created."]</p> }
+    </div>
+    <div class="d-flex gap-2">
+        <partial name="_ExportButtons" />
+        <a asp-page="Edit" class="btn btn-primary"><i class="bi bi-plus-lg"></i> @L["New exam"]</a>
+    </div>
+</div>
+<ul class="nav nav-pills mb-3 small">
+    @foreach (var (key, label) in new[] { ("", "All"), ("open", "Open now"), ("upcoming", "Upcoming"), ("closed", "Closed") })
+    {
+        <li class="nav-item"><a class="nav-link @(Model.State == (key == "" ? null : key) ? "active" : "")" asp-route-state="@key">@L[label]</a></li>
+    }
+</ul>
+<div class="card table-card">
+    <div class="card-body border-bottom">
+        <form method="get" class="filter-bar">
+            <input type="hidden" name="state" value="@Model.State" />
+            <input name="search" value="@Model.Search" class="form-control" placeholder="@L["Search..."]" />
+            <select name="subjectId" class="form-select" data-autosubmit>
+                <option value="">@L["All subjects"]</option>
+                @foreach (var s in Model.Subjects) { <option value="@s.Value" selected="@(s.Value == Model.SubjectId?.ToString())">@s.Text</option> }
+            </select>
+            <select name="status" class="form-select" data-autosubmit>
+                <option value="">@L["All statuses"]</option>
+                @foreach (var s in Enum.GetValues<ExamStatus>()) { <option value="@s" selected="@(Model.Status == s)">@L[s.ToString()]</option> }
+            </select>
+            <button class="btn btn-outline-secondary"><i class="bi bi-search"></i></button>
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead><tr><th>@L["Exam"]</th><th>@L["Schedule"]</th><th>@L["Questions"]</th><th>@L["Submissions"]</th><th>@L["Status"]</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var e in Model.Items.Items)
+            {
+                var open = e.Status == ExamStatus.Published && e.StartDate <= now && e.EndDate >= now;
+                <tr>
+                    <td style="min-width:220px">
+                        <a asp-page="Results" asp-route-id="@e.Id" class="fw-semibold text-decoration-none">@e.Title</a>
+                        <div class="small text-muted">@e.Subject @(string.IsNullOrEmpty(e.Classes) ? "· " + L["All students"] : "· " + e.Classes) @(User.IsAdmin() ? "· " + e.Owner : "")</div>
+                    </td>
+                    <td class="small text-nowrap">
+                        @e.StartDate.ToString("g")<br /><span class="text-muted">→ @e.EndDate.ToString("g")</span>
+                        <div class="text-muted"><i class="bi bi-stopwatch"></i> @e.Duration @L["min"]</div>
+                    </td>
+                    <td>@e.Questions <span class="small text-muted">(@e.TotalMarks @L["marks"])</span></td>
+                    <td>
+                        @e.Attempts
+                        @if (e.Pending > 0) { <a asp-page="/Manage/Marking" asp-route-examId="@e.Id" class="badge text-bg-warning text-decoration-none ms-1">@e.Pending @L["to mark"]</a> }
+                    </td>
+                    <td>
+                        <partial name="_StatusBadge" model="e.Status" />
+                        @if (open) { <span class="badge text-bg-danger ms-1"><i class="bi bi-broadcast"></i> @L["Live"]</span> }
+                    </td>
+                    <td class="text-end text-nowrap">
+                        <a asp-page="Questions" asp-route-id="@e.Id" class="btn btn-sm btn-outline-secondary" title="@L["Questions"]"><i class="bi bi-list-check"></i></a>
+                        <a asp-page="Results" asp-route-id="@e.Id" class="btn btn-sm btn-outline-secondary" title="@L["Results & analytics"]"><i class="bi bi-bar-chart"></i></a>
+                        <div class="dropdown d-inline">
+                            <button class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" type="button"><i class="bi bi-three-dots"></i></button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" asp-page="Edit" asp-route-id="@e.Id"><i class="bi bi-pencil me-2"></i>@L["Edit"]</a></li>
+                                <li>
+                                    <form method="post" asp-page-handler="Publish" asp-route-id="@e.Id" asp-route-publish="@(e.Status != ExamStatus.Published)">
+                                        <button class="dropdown-item">
+                                            @if (e.Status == ExamStatus.Published) { <i class="bi bi-eye-slash me-2"></i>@L["Unpublish"] }
+                                            else { <i class="bi bi-send me-2"></i>@L["Publish"] }
+                                        </button>
+                                    </form>
+                                </li>
+                                <li><form method="post" asp-page-handler="Clone" asp-route-id="@e.Id"><button class="dropdown-item"><i class="bi bi-copy me-2"></i>@L["Clone"]</button></form></li>
+                                <li><hr class="dropdown-divider" /></li>
+                                <li>
+                                    <form method="post" asp-page-handler="Delete" asp-route-id="@e.Id">
+                                        <button class="dropdown-item text-danger" data-confirm="@L["Delete this exam and ALL of its results?"]"><i class="bi bi-trash me-2"></i>@L["Delete"]</button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+            }
+            @if (Model.Items.TotalCount == 0) { <tr><td colspan="6"><div class="empty-state"><i class="bi bi-file-earmark-text"></i>@L["No exams found."]</div></td></tr> }
+            </tbody>
+        </table>
+    </div>
+    <div class="card-body pt-0"><partial name="_Pager" model="Model.Items" /></div>
+</div>

@@ -1,0 +1,85 @@
+﻿@page
+@model IndexModel
+@{ ViewData["Title"] = L["Home"]; }
+<section class="hero">
+    <div class="container">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-6">
+                <span class="badge rounded-pill text-bg-light border mb-3"><i class="bi bi-stars text-primary"></i> @L["Online examinations made simple"]</span>
+                <h1 class="display-5 fw-bold mb-3">@L["Create, schedule and grade exams in minutes"]</h1>
+                <p class="lead text-body-secondary mb-4">@L["ExamEase gives teachers a question bank, timed and scheduled exams, automatic grading, essay marking and rich analytics — while students get a clean, distraction free exam experience."]</p>
+                <div class="d-flex flex-wrap gap-2">
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <a class="btn btn-primary btn-lg" href="/Dashboard"><i class="bi bi-speedometer2"></i> @L["Go to dashboard"]</a>
+                    }
+                    else
+                    {
+                        <a class="btn btn-primary btn-lg" asp-page="/Account/Register">@L["Get started"]</a>
+                        <a class="btn btn-outline-primary btn-lg" asp-page="/Account/Login">@L["Login"]</a>
+                    }
+                </div>
+                <div class="d-flex gap-4 mt-4 text-body-secondary small">
+                    <div><b class="fs-4 d-block text-body">@Model.ExamCount</b>@L["Exams"]</div>
+                    <div><b class="fs-4 d-block text-body">@Model.QuestionCount</b>@L["Questions"]</div>
+                    <div><b class="fs-4 d-block text-body">@Model.StudentCount</b>@L["Students"]</div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card shadow border-0">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="fw-semibold">@L["Mathematics Mid-Term"]</span>
+                            <span class="badge text-bg-danger"><i class="bi bi-stopwatch"></i> 14:52</span>
+                        </div>
+                        <div class="progress mb-3" style="height:6px"><div class="progress-bar" style="width:40%"></div></div>
+                        <p class="fw-semibold">3. Solve for x: 2x + 6 = 14</p>
+                        @foreach (var (c, sel) in new[] { ("3", false), ("4", true), ("5", false), ("8", false) })
+                        {
+                            <label class="choice-option"><input type="radio" class="form-check-input" name="demo" checked="@sel" /> @c</label>
+                        }
+                        <div class="d-flex justify-content-between mt-3">
+                            <button class="btn btn-outline-secondary btn-sm" type="button">&lsaquo; @L["Previous"]</button>
+                            <button class="btn btn-primary btn-sm" type="button">@L["Save & Next"] &rsaquo;</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="features" class="container py-5">
+    <div class="text-center mb-5">
+        <h2 class="fw-bold">@L["Everything you need to run online exams"]</h2>
+        <p class="text-body-secondary">@L["Built with ASP.NET Core, Bootstrap 5 and SQL Server."]</p>
+    </div>
+    <div class="row g-4">
+        @foreach (var (icon, title, text) in new[]
+        {
+            ("bi-collection", "Question bank", "Multiple choice, multiple answer, true/false, short answer and essay questions. Import and export with Excel."),
+            ("bi-calendar-check", "Scheduled & timed exams", "Open exams between a start and end date with a server enforced countdown that auto-submits."),
+            ("bi-shuffle", "Randomisation", "Shuffle questions and answer choices per student to discourage cheating."),
+            ("bi-lock", "Strict mode", "Students must save the current answer before moving on; questions cannot be skipped."),
+            ("bi-eye-slash", "Proctoring", "Detect tab switching and leaving full screen, block copy & paste and auto-submit after too many violations."),
+            ("bi-arrow-repeat", "Automatic regrading", "Fix a wrong answer key and every affected result is recalculated instantly."),
+            ("bi-pencil-square", "Essay marking", "Mark essays and override any answer with feedback for the student."),
+            ("bi-graph-up", "Analytics", "Dashboard charts, score distribution, item analysis and leaderboards per exam."),
+            ("bi-award", "Certificates", "Students who pass can download a PDF certificate that anyone can verify online."),
+            ("bi-translate", "Multilanguage & RTL", "English, Arabic, Urdu and French with full right-to-left layout support."),
+            ("bi-file-earmark-spreadsheet", "Excel & PDF export", "Export users, questions and results to Excel or PDF in one click."),
+            ("bi-shield-check", "Audit log", "Every important action is recorded with user, time and IP address."),
+        })
+        {
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <div class="feature-icon mb-3"><i class="bi @icon"></i></div>
+                        <h3 class="h6 fw-bold">@L[title]</h3>
+                        <p class="text-body-secondary small mb-0">@L[text]</p>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</section>

@@ -1,0 +1,36 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+[Ll]og/
+[Ll]ogs/
+publish/
+*.nupkg
+
+# Visual Studio / Rider / VS Code
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.rsuser
+
+# Claude Code local config
+.claude/
+
+# Runtime data (e-mails, private attachments) and user uploads
+**/App_Data/*
+!**/App_Data/.gitkeep
+**/wwwroot/uploads/**/*
+!**/wwwroot/uploads/**/.gitkeep
+
+# Local secrets / environment overrides
+appsettings.*.local.json
+*.env
+
+# OS files
+Thumbs.db
+.DS_Store

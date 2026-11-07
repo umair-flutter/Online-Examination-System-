@@ -1,0 +1,32 @@
+@page
+@model VerifyModel
+@{ ViewData["Title"] = L["Verify Certificate"]; }
+<div class="container py-5" style="max-width:640px">
+    <h1 class="h3 text-center mb-4"><i class="bi bi-patch-check text-primary"></i> @L["Verify Certificate"]</h1>
+    <form method="get" class="d-flex gap-2 mb-4">
+        <input name="code" value="@Model.Code" class="form-control form-control-lg" placeholder="@L["Certificate ID"]" required />
+        <button class="btn btn-primary btn-lg" type="submit">@L["Verify"]</button>
+    </form>
+    @if (!string.IsNullOrEmpty(Model.Code))
+    {
+        if (Model.Attempt is { } a)
+        {
+            <div class="card border-success">
+                <div class="card-body">
+                    <div class="text-success fw-semibold mb-2"><i class="bi bi-check-circle-fill"></i> @L["Valid certificate"]</div>
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">@L["Student"]</dt><dd class="col-sm-8">@a.Student.FullName</dd>
+                        <dt class="col-sm-4">@L["Exam"]</dt><dd class="col-sm-8">@a.Exam.Title</dd>
+                        <dt class="col-sm-4">@L["Subject"]</dt><dd class="col-sm-8">@a.Exam.Subject.Name</dd>
+                        <dt class="col-sm-4">@L["Score"]</dt><dd class="col-sm-8">@a.Percentage.ToString("0.##")%</dd>
+                        <dt class="col-sm-4">@L["Date"]</dt><dd class="col-sm-8">@a.SubmittedAt?.ToString("D")</dd>
+                    </dl>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-danger"><i class="bi bi-x-circle-fill"></i> @L["No valid certificate was found with this ID."]</div>
+        }
+    }
+</div>

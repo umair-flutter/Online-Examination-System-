@@ -1,0 +1,177 @@
+@page "{id:int?}"
+@model Online_Examination_System.Pages.Manage.Questions.EditModel
+@{ var title = Model.Input.Id == 0 ? L["New question"] : L["Edit question"]; ViewData["Title"] = title; }
+<div class="page-header">
+    <div>
+        @if (Model.ExamId != null) { <a asp-page="/Manage/Exams/Questions" asp-route-id="@Model.ExamId" class="small text-decoration-none"><i class="bi bi-arrow-left"></i> @L["Exam questions"]</a> }
+        else { <a asp-page="Index" class="small text-decoration-none"><i class="bi bi-arrow-left"></i> @L["Question Bank"]</a> }
+        <h1 class="h3 mb-0">@title</h1>
+    </div>
+</div>
+@if (Model.AnswerCount > 0)
+{
+    <div class="alert alert-info small"><i class="bi bi-arrow-repeat"></i> @L["This question has been answered {0} time(s). Changing the correct answer or marks will re-grade those results automatically.", Model.AnswerCount]</div>
+}
+<form method="post" enctype="multipart/form-data">
+    <input asp-for="Input.Id" type="hidden" />
+    <input asp-for="ExamId" type="hidden" />
+    <div asp-validation-summary="All" class="alert alert-danger py-2 small"></div>
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="Input.Text" class="form-label">@L["Question"]</label>
+                        <textarea asp-for="Input.Text" class="form-control" rows="4"></textarea>
+                    </div>
+                    <div class="mb-1">
+                        <label asp-for="Image" class="form-label">@L["Image"] <span class="text-muted small">(@L["optional"])</span></label>
+                        <input asp-for="Image" type="file" accept="image/*" class="form-control" />
+                    </div>
+                    @if (!string.IsNullOrEmpty(Model.CurrentImage))
+                    {
+                        <div class="mt-2 d-flex align-items-center gap-3">
+                            <img src="@Model.CurrentImage" alt="" class="rounded border" style="max-height:120px" />
+                            <div class="form-check"><input asp-for="RemoveImage" class="form-check-input" /><label asp-for="RemoveImage" class="form-check-label">@L["Remove image"]</label></div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="card mb-4 type-panel" data-types="0,4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>@L["Choices"]</span>
+                    <span class="small text-muted" id="choiceHint"></span>
+                </div>
+                <div class="card-body">
+                    <div id="choiceList">
+                        @for (var i = 0; i < Model.Input.Choices.Count; i++)
+                        {
+                            <div class="input-group mb-2 choice-row">
+                                <span class="input-group-text">
+                                    <input type="checkbox" class="form-check-input mt-0 correct-box" name="Input.Choices[@i].IsCorrect" value="true" checked="@Model.Input.Choices[i].IsCorrect" title="@L["Correct"]" />
+                                </span>
+                                <input type="hidden" name="Input.Choices[@i].Id" value="@Model.Input.Choices[i].Id" />
+                                <input type="text" class="form-control" name="Input.Choices[@i].Text" value="@Model.Input.Choices[i].Text" placeholder="@L["Choice text"]" />
+                                <button type="button" class="btn btn-outline-danger remove-choice"><i class="bi bi-x-lg"></i></button>
+                            </div>
+                        }
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="addChoice"><i class="bi bi-plus"></i> @L["Add choice"]</button>
+                </div>
+            </div>
+
+            <div class="card mb-4 type-panel" data-types="1">
+                <div class="card-header">@L["Correct answer"]</div>
+                <div class="card-body d-flex gap-4">
+                    <div class="form-check"><input class="form-check-input" type="radio" name="Input.TrueIsCorrect" value="true" id="tfT" checked="@Model.Input.TrueIsCorrect" /><label class="form-check-label" for="tfT">@L["True"]</label></div>
+                    <div class="form-check"><input class="form-check-input" type="radio" name="Input.TrueIsCorrect" value="false" id="tfF" checked="@(!Model.Input.TrueIsCorrect)" /><label class="form-check-label" for="tfF">@L["False"]</label></div>
+                </div>
+            </div>
+
+            <div class="card mb-4 type-panel" data-types="2">
+                <div class="card-header">@L["Accepted answers"]</div>
+                <div class="card-body">
+                    <input asp-for="Input.CorrectShortAnswer" class="form-control" placeholder="e.g. H2O|water" />
+                    <div class="form-text">@L["Separate multiple accepted answers with | . Extra spaces are ignored."]</div>
+                    <div class="form-check mt-2"><input asp-for="Input.CaseSensitive" class="form-check-input" /><label asp-for="Input.CaseSensitive" class="form-check-label">@L["Case sensitive"]</label></div>
+                </div>
+            </div>
+
+            <div class="alert alert-secondary type-panel small" data-types="3"><i class="bi bi-pencil-square"></i> @L["Essay answers are marked manually by the teacher on the Manual Marking page."]</div>
+
+            <div class="card">
+                <div class="card-body">
+                    <label asp-for="Input.Explanation" class="form-label">@L["Explanation"] <span class="text-muted small">(@L["shown to students when answers are revealed"])</span></label>
+                    <textarea asp-for="Input.Explanation" class="form-control" rows="2"></textarea>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="Input.Type" class="form-label">@L["Type"]</label>
+                        <select asp-for="Input.Type" class="form-select" id="typeSelect">
+                            @foreach (var t in Enum.GetValues<QuestionType>()) { <option value="@t" data-v="@((int)t)">@L[t.DisplayName()]</option> }
+                        </select>
+                        <span asp-validation-for="Input.Type" class="text-danger small"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Input.SubjectId" class="form-label">@L["Subject"]</label>
+                        <select asp-for="Input.SubjectId" asp-items="Model.Subjects" class="form-select"><option value="">— @L["Select"] —</option></select>
+                        <span asp-validation-for="Input.SubjectId" class="text-danger small"></span>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label asp-for="Input.Marks" class="form-label">@L["Marks"]</label>
+                            <input asp-for="Input.Marks" class="form-control" step="0.25" min="0.25" />
+                        </div>
+                        <div class="col-6">
+                            <label asp-for="Input.Difficulty" class="form-label">@L["Difficulty"]</label>
+                            <select asp-for="Input.Difficulty" class="form-select">
+                                @foreach (var d in Enum.GetValues<Difficulty>()) { <option value="@d">@L[d.ToString()]</option> }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Input.Tags" class="form-label">@L["Tags"]</label>
+                        <input asp-for="Input.Tags" class="form-control" placeholder="algebra, chapter-2" />
+                    </div>
+                    <button class="btn btn-primary w-100"><i class="bi bi-check2"></i> @L["Save question"]</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<template id="choiceTpl">
+    <div class="input-group mb-2 choice-row">
+        <span class="input-group-text"><input type="checkbox" class="form-check-input mt-0 correct-box" value="true" data-name="IsCorrect" /></span>
+        <input type="hidden" value="0" data-name="Id" />
+        <input type="text" class="form-control" placeholder="@L["Choice text"]" data-name="Text" />
+        <button type="button" class="btn btn-outline-danger remove-choice"><i class="bi bi-x-lg"></i></button>
+    </div>
+</template>
+
+@section Scripts {
+    <script>
+        (function () {
+            var typeSel = document.getElementById('typeSelect'), list = document.getElementById('choiceList');
+            var hints = { '0': '@L["Tick the one correct choice"]', '4': '@L["Tick every correct choice"]' };
+            function typeVal() { return typeSel.options[typeSel.selectedIndex].dataset.v; }
+            function renumber() {
+                list.querySelectorAll('.choice-row').forEach(function (row, i) {
+                    row.querySelector('.correct-box').name = 'Input.Choices[' + i + '].IsCorrect';
+                    row.querySelector('input[type=hidden]').name = 'Input.Choices[' + i + '].Id';
+                    row.querySelector('input[type=text]').name = 'Input.Choices[' + i + '].Text';
+                });
+            }
+            function sync() {
+                var v = typeVal();
+                document.querySelectorAll('.type-panel').forEach(function (p) { p.style.display = p.dataset.types.split(',').indexOf(v) >= 0 ? '' : 'none'; });
+                document.getElementById('choiceHint').textContent = hints[v] || '';
+                if (v === '0') {
+                    var checked = list.querySelectorAll('.correct-box:checked');
+                    for (var i = 1; i < checked.length; i++) checked[i].checked = false;
+                }
+            }
+            document.getElementById('addChoice').addEventListener('click', function () {
+                list.appendChild(document.getElementById('choiceTpl').content.cloneNode(true));
+                renumber();
+            });
+            list.addEventListener('click', function (e) {
+                if (e.target.closest('.remove-choice')) {
+                    if (list.querySelectorAll('.choice-row').length <= 2) return;
+                    e.target.closest('.choice-row').remove(); renumber();
+                }
+            });
+            list.addEventListener('change', function (e) {
+                if (e.target.classList.contains('correct-box') && e.target.checked && typeVal() === '0')
+                    list.querySelectorAll('.correct-box').forEach(function (b) { if (b !== e.target) b.checked = false; });
+            });
+            typeSel.addEventListener('change', sync);
+            sync();
+        })();
+    </script>
+}

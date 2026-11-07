@@ -1,0 +1,66 @@
+@page
+@model Online_Examination_System.Pages.Student.ExamsModel
+@{ ViewData["Title"] = L["My Exams"]; }
+<div class="page-header"><h1 class="h3 mb-0">@L["My Exams"]</h1></div>
+<ul class="nav nav-pills mb-4">
+    @foreach (var (key, label, icon) in new[] { ("open", "Open now", "bi-broadcast"), ("upcoming", "Upcoming", "bi-calendar-event"), ("done", "Completed / closed", "bi-check2-circle") })
+    {
+        <li class="nav-item">
+            <a class="nav-link @(Model.Tab == key ? "active" : "")" asp-route-tab="@key"><i class="bi @icon"></i> @L[label] <span class="badge rounded-pill text-bg-light border ms-1">@Model.Counts.GetValueOrDefault(key)</span></a>
+        </li>
+    }
+</ul>
+<div class="row g-4">
+    @foreach (var c in Model.Cards)
+    {
+        var e = c.Exam;
+        var last = c.Attempts.LastOrDefault(a => a.IsSubmitted);
+        <div class="col-md-6 col-xl-4">
+            <div class="card h-100">
+                <div class="card-body d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="badge text-bg-light border">@e.Subject.Code</span>
+                        @switch (c.Availability)
+                        {
+                            case ExamAvailability.InProgress: <span class="badge text-bg-warning"><i class="bi bi-hourglass-split"></i> @L["In progress"]</span> break;
+                            case ExamAvailability.Open: <span class="badge text-bg-success">@L["Open"]</span> break;
+                            case ExamAvailability.NotStarted: <span class="badge text-bg-info">@L["Upcoming"]</span> break;
+                            case ExamAvailability.NoAttemptsLeft: <span class="badge text-bg-secondary">@L["Completed"]</span> break;
+                            default: <span class="badge text-bg-dark">@L["Closed"]</span> break;
+                        }
+                    </div>
+                    <h2 class="h5">@e.Title</h2>
+                    <p class="small text-muted flex-grow-1">@e.Description.Truncate(120)</p>
+                    <ul class="list-unstyled small text-muted mb-3">
+                        <li><i class="bi bi-calendar-range me-1"></i> @e.StartDate.ToString("g") → @e.EndDate.ToString("g")</li>
+                        <li><i class="bi bi-stopwatch me-1"></i> @e.DurationMinutes @L["min"] · @c.QuestionCount @L["questions"] · @c.TotalMarks @L["marks"]</li>
+                        <li><i class="bi bi-arrow-repeat me-1"></i> @L["Attempts"]: @c.Attempts.Count / @(e.MaxAttempts == 0 ? "∞" : e.MaxAttempts.ToString())</li>
+                        @if (e.EnableProctoring) { <li class="text-danger"><i class="bi bi-eye me-1"></i> @L["Proctored exam"]</li> }
+                    </ul>
+                    @if (last != null)
+                    {
+                        <div class="alert alert-light border small py-2">
+                            @L["Last result"]:
+                            @if (last.Status == AttemptStatus.PendingMarking) { <b>@L["Pending marking"]</b> }
+                            else { <b class="@(last.IsPassed ? "text-success" : "text-danger")">@last.Percentage.ToString("0.#")% · @L[last.IsPassed ? "Passed" : "Failed"]</b> }
+                            <a asp-page="Result" asp-route-id="@last.Id" class="float-end">@L["View"]</a>
+                        </div>
+                    }
+                    @switch (c.Availability)
+                    {
+                        case ExamAvailability.InProgress:
+                            <a asp-page="Take" asp-route-id="@c.Attempts.First(a => !a.IsSubmitted).Id" class="btn btn-warning w-100"><i class="bi bi-play-fill"></i> @L["Resume exam"]</a>
+                            break;
+                        case ExamAvailability.Open:
+                            <a asp-page="Start" asp-route-id="@e.Id" class="btn btn-primary w-100"><i class="bi bi-play-fill"></i> @(c.Attempts.Count > 0 ? L["Retake exam"] : L["Start exam"])</a>
+                            break;
+                        case ExamAvailability.NotStarted:
+                            <button class="btn btn-outline-secondary w-100" disabled><i class="bi bi-lock"></i> @L["Opens"] @e.StartDate.ToString("g")</button>
+                            break;
+                    }
+                </div>
+            </div>
+        </div>
+    }
+    @if (Model.Cards.Count == 0) { <div class="col-12"><div class="card"><div class="empty-state"><i class="bi bi-journal-x"></i>@L["No exams here."]</div></div></div> }
+</div>

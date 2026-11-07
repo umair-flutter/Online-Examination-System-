@@ -1,0 +1,47 @@
+@page "{id:int}"
+@model Online_Examination_System.Pages.Manage.Exams.AttemptModel
+@{ var a = Model.Attempt; ViewData["Title"] = a.Student.FullName; }
+<div class="page-header">
+    <div>
+        <a asp-page="Results" asp-route-id="@a.ExamId" class="small text-decoration-none"><i class="bi bi-arrow-left"></i> @a.Exam.Title</a>
+        <h1 class="h3 mb-0">@a.Student.FullName <span class="text-muted fs-6">· @L["attempt"] @a.AttemptNumber</span></h1>
+    </div>
+    <div class="d-flex gap-2">
+        @if (a.IsSubmitted) { <a asp-page="/Manage/Mark" asp-route-id="@a.Id" class="btn btn-outline-warning"><i class="bi bi-pencil-square"></i> @L["Mark / override"]</a> }
+        <a asp-page-handler="Pdf" asp-route-id="@a.Id" class="btn btn-outline-secondary"><i class="bi bi-file-earmark-pdf"></i> PDF</a>
+    </div>
+</div>
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-body text-center">
+                <div class="display-5 fw-bold @(a.IsPassed ? "text-success" : a.Status == AttemptStatus.PendingMarking ? "text-warning" : "text-danger")">@a.Percentage.ToString("0.#")%</div>
+                <div class="text-muted">@a.Score.ToString("0.##") / @a.TotalMarks.ToString("0.##") @L["marks"]</div>
+                <div class="mt-2">
+                    @if (a.Status == AttemptStatus.Graded) { <span class="badge @(a.IsPassed ? "text-bg-success" : "text-bg-danger")">@L[a.IsPassed ? "Passed" : "Failed"]</span> }
+                    else { <partial name="_StatusBadge" model="a.Status" /> }
+                </div>
+            </div>
+            <ul class="list-group list-group-flush small">
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">@L["Started"]</span>@a.StartedAt.ToString("g")</li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">@L["Submitted"]</span>@(a.SubmittedAt?.ToString("g") ?? "-")</li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">@L["Time taken"]</span>@(a.SubmittedAt != null ? (a.SubmittedAt.Value - a.StartedAt).FormatDuration() : "-")</li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">@L["Auto-submitted"]</span>@L[a.AutoSubmitted ? "Yes" : "No"]</li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">@L["IP address"]</span>@a.IpAddress</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="card-header d-flex justify-content-between"><span><i class="bi bi-eye"></i> @L["Proctoring log"]</span><span class="badge @(a.ViolationCount > 0 ? "text-bg-danger" : "text-bg-success")">@a.ViolationCount</span></div>
+            <ul class="list-group list-group-flush small" style="max-height:320px;overflow:auto">
+                @foreach (var e in Model.Events)
+                {
+                    <li class="list-group-item"><span class="text-muted">@e.OccurredAt.ToString("T")</span> · <b>@e.EventType</b> @e.Details</li>
+                }
+                @if (Model.Events.Count == 0) { <li class="list-group-item text-muted">@L["No suspicious activity recorded."]</li> }
+            </ul>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <partial name="_AnswerReview" model="new AttemptReview(a, Model.Questions, true)" />
+    </div>
+</div>

@@ -1,0 +1,110 @@
+@page "{id:int}"
+@model Online_Examination_System.Pages.Manage.Exams.QuestionsModel
+@{ ViewData["Title"] = Model.Exam.Title; var total = Model.Current.Sum(x => x.Question.Marks); }
+<div class="page-header">
+    <div>
+        <a asp-page="Index" class="small text-decoration-none"><i class="bi bi-arrow-left"></i> @L["Exams"]</a>
+        <h1 class="h3 mb-0">@Model.Exam.Title</h1>
+        <div class="text-muted small">@Model.Exam.Subject.Name · <partial name="_StatusBadge" model="Model.Exam.Status" /></div>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-page="Edit" asp-route-id="@Model.Exam.Id" class="btn btn-outline-secondary"><i class="bi bi-gear"></i> @L["Settings"]</a>
+        <a asp-page="/Manage/Questions/Edit" asp-route-examId="@Model.Exam.Id" class="btn btn-primary"><i class="bi bi-plus-lg"></i> @L["Create new question"]</a>
+    </div>
+</div>
+@if (Model.HasAttempts)
+{
+    <div class="alert alert-warning small"><i class="bi bi-exclamation-triangle"></i> @L["Students have already started this exam. Changes only affect attempts started from now on."]</div>
+}
+<div class="row g-4">
+    <div class="col-xl-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between">
+                <span>@L["Questions in this exam"] (@Model.Current.Count)</span>
+                <span class="text-muted">@L["Total"]: @total @L["marks"]</span>
+            </div>
+            <ul class="list-group list-group-flush">
+                @for (var i = 0; i < Model.Current.Count; i++)
+                {
+                    var eq = Model.Current[i];
+                    <li class="list-group-item">
+                        <div class="d-flex gap-2">
+                            <span class="fw-bold text-muted">@(i + 1).</span>
+                            <div class="flex-grow-1">
+                                <div>@eq.Question.Text.Truncate(140)</div>
+                                <div class="small mt-1"><partial name="_StatusBadge" model="eq.Question.Type" /> <span class="text-muted">· @eq.Question.Marks @L["marks"]</span></div>
+                            </div>
+                            <div class="text-nowrap">
+                                <form method="post" asp-page-handler="Move" asp-route-id="@Model.Exam.Id" asp-route-examQuestionId="@eq.Id" asp-route-dir="-1" class="d-inline">
+                                    <button class="btn btn-sm btn-light" disabled="@(i == 0)"><i class="bi bi-arrow-up"></i></button>
+                                </form>
+                                <form method="post" asp-page-handler="Move" asp-route-id="@Model.Exam.Id" asp-route-examQuestionId="@eq.Id" asp-route-dir="1" class="d-inline">
+                                    <button class="btn btn-sm btn-light" disabled="@(i == Model.Current.Count - 1)"><i class="bi bi-arrow-down"></i></button>
+                                </form>
+                                <a asp-page="/Manage/Questions/Edit" asp-route-id="@eq.QuestionId" asp-route-examId="@Model.Exam.Id" class="btn btn-sm btn-light"><i class="bi bi-pencil"></i></a>
+                                <form method="post" asp-page-handler="Remove" asp-route-id="@Model.Exam.Id" asp-route-examQuestionId="@eq.Id" class="d-inline">
+                                    <button class="btn btn-sm btn-light text-danger" data-confirm="@L["Remove this question from the exam?"]"><i class="bi bi-x-lg"></i></button>
+                                </form>
+                            </div>
+                        </div>
+                    </li>
+                }
+                @if (Model.Current.Count == 0) { <li class="list-group-item"><div class="empty-state"><i class="bi bi-list-check"></i>@L["No questions yet. Add some from the question bank."]</div></li> }
+            </ul>
+        </div>
+    </div>
+    <div class="col-xl-6">
+        <div class="card">
+            <div class="card-header">@L["Question bank"]</div>
+            <div class="card-body border-bottom">
+                <form method="get" class="filter-bar">
+                    <input name="search" value="@Model.Search" class="form-control" placeholder="@L["Search..."]" />
+                    <select name="subjectId" class="form-select" data-autosubmit>
+                        <option value="">@L["All subjects"]</option>
+                        @foreach (var s in Model.Subjects) { <option value="@s.Value" selected="@(s.Value == Model.SubjectId?.ToString())">@s.Text</option> }
+                    </select>
+                    <select name="type" class="form-select" data-autosubmit>
+                        <option value="">@L["All types"]</option>
+                        @foreach (var t in Enum.GetValues<QuestionType>()) { <option value="@t" selected="@(Model.Type == t)">@L[t.DisplayName()]</option> }
+                    </select>
+                    <select name="difficulty" class="form-select" data-autosubmit>
+                        <option value="">@L["All levels"]</option>
+                        @foreach (var d in Enum.GetValues<Difficulty>()) { <option value="@d" selected="@(Model.Difficulty == d)">@L[d.ToString()]</option> }
+                    </select>
+                </form>
+                <form method="post" asp-page-handler="Random" asp-route-id="@Model.Exam.Id" asp-route-subjectId="@Model.SubjectId" asp-route-type="@Model.Type" asp-route-difficulty="@Model.Difficulty" asp-route-search="@Model.Search" class="d-flex gap-2 align-items-center mt-2 small">
+                    <i class="bi bi-shuffle"></i> @L["Randomly pick"]
+                    <input type="number" name="count" value="5" min="1" max="200" class="form-control form-control-sm" style="width:80px" />
+                    @L["questions matching the filters"]
+                    <button class="btn btn-sm btn-outline-primary">@L["Add"]</button>
+                </form>
+            </div>
+            <form method="post" asp-page-handler="Add" asp-route-id="@Model.Exam.Id" asp-route-subjectId="@Model.SubjectId" asp-route-type="@Model.Type" asp-route-difficulty="@Model.Difficulty" asp-route-search="@Model.Search">
+                <div style="max-height:520px;overflow:auto">
+                    <ul class="list-group list-group-flush">
+                        @foreach (var q in Model.Bank)
+                        {
+                            <li class="list-group-item">
+                                <label class="d-flex gap-2 mb-0">
+                                    <input type="checkbox" class="form-check-input pick flex-shrink-0" name="questionIds" value="@q.Id" />
+                                    <span>
+                                        @q.Text.Truncate(120)
+                                        <span class="d-block small mt-1"><partial name="_StatusBadge" model="q.Type" /> <partial name="_StatusBadge" model="q.Difficulty" /> <span class="text-muted">· @q.Subject.Code · @q.Marks @L["marks"]</span></span>
+                                    </span>
+                                </label>
+                            </li>
+                        }
+                        @if (Model.Bank.Count == 0) { <li class="list-group-item text-muted text-center py-4">@L["No more questions match these filters."]</li> }
+                    </ul>
+                </div>
+                @if (Model.Bank.Count > 0)
+                {
+                    <div class="card-body d-flex justify-content-between">
+                        <button type="button" class="btn btn-sm btn-link" onclick="document.querySelectorAll('.pick').forEach(c=>c.checked=true)">@L["Select all"]</button>
+                        <button class="btn btn-primary"><i class="bi bi-plus"></i> @L["Add selected"]</button>
+                    </div>
+                }
+            </form>
+        </div>
+    </div>
+</div>

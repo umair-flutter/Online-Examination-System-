@@ -1,0 +1,16 @@
+@model string
+<div class="dropdown">
+    <button class="btn btn-link text-body text-decoration-none p-2" data-bs-toggle="dropdown" type="button" title="@L["Language"]">
+        <i class="bi bi-translate"></i> <span class="d-none d-sm-inline small">@Lang.Current.NativeName</span>
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end shadow">
+        @foreach (var l in Lang.Supported)
+        {
+            <li>
+                <a class="dropdown-item @(l.Code == Lang.Current.Code ? "active" : "")" href="/set-language?culture=@l.Code&returnUrl=@Uri.EscapeDataString(Model)">
+                    <span class="me-2">@l.Flag</span>@l.NativeName
+                </a>
+            </li>
+        }
+    </ul>
+</div>

@@ -1,0 +1,146 @@
+@page "{id:int}"
+@model Online_Examination_System.Pages.Manage.Exams.ResultsModel
+@{
+    ViewData["Title"] = Model.Exam.Title;
+    var submitted = Model.Attempts.Count;
+    var participants = Model.Attempts.Select(a => a.StudentId).Distinct().Count();
+}
+<div class="page-header">
+    <div>
+        <a asp-page="Index" class="small text-decoration-none"><i class="bi bi-arrow-left"></i> @L["Exams"]</a>
+        <h1 class="h3 mb-0">@Model.Exam.Title</h1>
+        <div class="text-muted small">@Model.Exam.Subject.Name · @Model.Exam.StartDate.ToString("g") → @Model.Exam.EndDate.ToString("g") · <partial name="_StatusBadge" model="Model.Exam.Status" /></div>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a asp-page="Questions" asp-route-id="@Model.Exam.Id" class="btn btn-outline-secondary"><i class="bi bi-list-check"></i> @L["Questions"]</a>
+        <form method="post" asp-page-handler="Regrade" asp-route-id="@Model.Exam.Id">
+            <button class="btn btn-outline-secondary" data-confirm="@L["Re-grade every submitted attempt now?"]"><i class="bi bi-arrow-repeat"></i> @L["Re-grade all"]</button>
+        </form>
+        <div class="btn-group">
+            <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-download"></i> @L["Export"]</button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" asp-page-handler="Excel" asp-route-id="@Model.Exam.Id"><i class="bi bi-file-earmark-excel text-success me-2"></i>Excel</a></li>
+                <li><a class="dropdown-item" asp-page-handler="Pdf" asp-route-id="@Model.Exam.Id"><i class="bi bi-file-earmark-pdf text-danger me-2"></i>PDF</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    @foreach (var (label, value, icon, color) in new (string, string, string, string)[]
+    {
+        ("Participation", $"{participants}/{Model.Eligible}", "bi-people", "primary"),
+        ("Submissions", $"{submitted}" + (Model.InProgress > 0 ? $" (+{Model.InProgress} live)" : ""), "bi-inbox", "info"),
+        ("Average", $"{Model.Average}%", "bi-graph-up", "success"),
+        ("Highest / lowest", $"{Model.Highest:0.#}% / {Model.Lowest:0.#}%", "bi-arrow-down-up", "secondary"),
+        ("Pass rate", $"{Model.PassRate}%", "bi-trophy", "warning"),
+        ("Avg. time", $"{Model.AvgMinutes} min", "bi-stopwatch", "danger"),
+    })
+    {
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card stat-card h-100 flex-column align-items-start gap-2">
+                <div class="stat-icon bg-@color-subtle text-@color-emphasis" style="width:38px;height:38px;font-size:1.1rem"><i class="bi @icon"></i></div>
+                <div><div class="fw-bold fs-5">@value</div><div class="stat-label">@L[label]</div></div>
+            </div>
+        </div>
+    }
+</div>
+
+<ul class="nav nav-tabs mb-3" role="tablist">
+    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabResults" type="button">@L["Results"]</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabAnalytics" type="button">@L["Analytics"]</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabItems" type="button">@L["Item analysis"]</button></li>
+</ul>
+<div class="tab-content">
+    <div class="tab-pane fade show active" id="tabResults">
+        <div class="card table-card">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead><tr><th>#</th><th>@L["Student"]</th><th>@L["Score"]</th><th>@L["Result"]</th><th>@L["Time"]</th><th>@L["Flags"]</th><th></th></tr></thead>
+                    <tbody>
+                    @for (var i = 0; i < Model.Attempts.Count; i++)
+                    {
+                        var a = Model.Attempts[i];
+                        <tr>
+                            <td class="fw-bold">@if (i < 3 && a.Status == AttemptStatus.Graded) { <span>@(new[] { "🥇", "🥈", "🥉" }[i])</span> } else { @(i + 1) }</td>
+                            <td>@a.Student.FullName<div class="small text-muted">@a.Student.UserName · @L["attempt"] @a.AttemptNumber</div></td>
+                            <td>@a.Score.ToString("0.##") / @a.TotalMarks.ToString("0.##")<div class="small text-muted">@a.Percentage.ToString("0.#")%</div></td>
+                            <td>
+                                @if (a.Status == AttemptStatus.PendingMarking) { <partial name="_StatusBadge" model="a.Status" /> }
+                                else { <span class="badge @(a.IsPassed ? "text-bg-success" : "text-bg-danger")">@L[a.IsPassed ? "Passed" : "Failed"]</span> }
+                            </td>
+                            <td class="small text-muted">@((a.SubmittedAt!.Value - a.StartedAt).FormatDuration())<br />@a.SubmittedAt?.ToString("g")</td>
+                            <td>
+                                @if (a.AutoSubmitted) { <span class="badge text-bg-light border" title="@L["Auto-submitted"]"><i class="bi bi-alarm"></i></span> }
+                                @if (a.ViolationCount > 0) { <span class="badge text-bg-danger" title="@L["Proctoring violations"]"><i class="bi bi-eye"></i> @a.ViolationCount</span> }
+                            </td>
+                            <td class="text-end text-nowrap">
+                                <a asp-page="Attempt" asp-route-id="@a.Id" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a>
+                                @if (a.Status == AttemptStatus.PendingMarking) { <a asp-page="/Manage/Mark" asp-route-id="@a.Id" class="btn btn-sm btn-warning"><i class="bi bi-pencil-square"></i></a> }
+                                <form method="post" asp-page-handler="Reset" asp-route-id="@Model.Exam.Id" asp-route-attemptId="@a.Id" class="d-inline">
+                                    <button class="btn btn-sm btn-outline-danger" title="@L["Delete attempt (allow retake)"]" data-confirm="@L["Delete this attempt so the student can retake the exam?"]"><i class="bi bi-arrow-counterclockwise"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                    @if (Model.Attempts.Count == 0) { <tr><td colspan="7"><div class="empty-state"><i class="bi bi-inbox"></i>@L["No submissions yet."]</div></td></tr> }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="tab-pane fade" id="tabAnalytics">
+        <div class="row g-4">
+            <div class="col-lg-8"><div class="card"><div class="card-header">@L["Score distribution"]</div><div class="card-body"><div class="chart-box"><canvas id="chartHist"></canvas></div></div></div></div>
+            <div class="col-lg-4"><div class="card"><div class="card-header">@L["Correct rate per question"]</div><div class="card-body"><div class="chart-box"><canvas id="chartItems"></canvas></div></div></div></div>
+        </div>
+    </div>
+    <div class="tab-pane fade" id="tabItems">
+        <div class="card table-card">
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead><tr><th>#</th><th>@L["Question"]</th><th>@L["Answered"]</th><th>@L["Correct rate"]</th><th>@L["Avg. marks"]</th><th>@L["Difficulty"]</th></tr></thead>
+                    <tbody>
+                    @foreach (var it in Model.Items)
+                    {
+                        var label = it.Answered == 0 ? "-" : it.CorrectRate >= 80 ? "Easy" : it.CorrectRate >= 40 ? "Medium" : "Hard";
+                        <tr>
+                            <td>@it.Order</td>
+                            <td>@it.Text.Truncate(90) <partial name="_StatusBadge" model="it.Type" /></td>
+                            <td>@it.Answered</td>
+                            <td style="min-width:140px">
+                                <div class="progress" style="height:8px"><div class="progress-bar @(it.CorrectRate >= 80 ? "bg-success" : it.CorrectRate >= 40 ? "bg-warning" : "bg-danger")" style="width:@(it.CorrectRate)%"></div></div>
+                                <small>@(it.Type == QuestionType.Essay ? "—" : it.CorrectRate + "%")</small>
+                            </td>
+                            <td>@it.AvgMarks / @it.Marks</td>
+                            <td>@L[label]</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+        (function () {
+            applyChartTheme();
+            var c = window.chartColors;
+            new Chart(document.getElementById('chartHist'), {
+                type: 'bar',
+                data: { labels: ['0-9', '10-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80-89', '90-100'],
+                    datasets: [{ data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Histogram)), backgroundColor: c[0], borderRadius: 6 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+            });
+            new Chart(document.getElementById('chartItems'), {
+                type: 'bar',
+                data: { labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Items.Select(i => "Q" + i.Order))),
+                    datasets: [{ data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Items.Select(i => i.CorrectRate))), backgroundColor: c[1], borderRadius: 4 }] },
+                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, max: 100 } } }
+            });
+        })();
+    </script>
+}

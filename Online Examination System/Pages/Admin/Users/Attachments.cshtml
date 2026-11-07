@@ -1,0 +1,55 @@
+@page "{id}"
+@model Online_Examination_System.Pages.Admin.Users.AttachmentsModel
+@{ ViewData["Title"] = L["Attachments"]; }
+<div class="page-header">
+    <div>
+        <a asp-page="Index" class="small text-decoration-none"><i class="bi bi-arrow-left"></i> @L["Users"]</a>
+        <h1 class="h3 mb-0">@L["Attachments"] · @Model.AppUser.FullName</h1>
+    </div>
+</div>
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">@L["Upload files"]</div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="Upload" asp-route-id="@Model.AppUser.Id" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <input type="file" name="Uploads" multiple class="form-control" required />
+                        <div class="form-text">PDF, Office, images, ZIP · max 10 MB</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">@L["Description"]</label>
+                        <input name="Description" class="form-control" maxlength="300" />
+                    </div>
+                    <button class="btn btn-primary w-100"><i class="bi bi-upload"></i> @L["Upload"]</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card table-card">
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead><tr><th>@L["File"]</th><th>@L["Size"]</th><th>@L["Uploaded"]</th><th></th></tr></thead>
+                    <tbody>
+                    @foreach (var a in Model.Items)
+                    {
+                        <tr>
+                            <td><i class="bi bi-file-earmark"></i> @a.FileName<div class="small text-muted">@a.Description</div></td>
+                            <td class="small">@a.Size.FormatBytes()</td>
+                            <td class="small text-muted">@a.UploadedAt.ToString("g")<br />@a.UploadedBy</td>
+                            <td class="text-end text-nowrap">
+                                <a asp-page-handler="Download" asp-route-id="@Model.AppUser.Id" asp-route-fileId="@a.Id" class="btn btn-sm btn-outline-primary"><i class="bi bi-download"></i></a>
+                                <form method="post" asp-page-handler="Delete" asp-route-id="@Model.AppUser.Id" asp-route-fileId="@a.Id" class="d-inline">
+                                    <button class="btn btn-sm btn-outline-danger" data-confirm="@L["Delete this file?"]"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                    @if (Model.Items.Count == 0) { <tr><td colspan="4"><div class="empty-state"><i class="bi bi-paperclip"></i>@L["No attachments."]</div></td></tr> }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,42 @@
+@page
+@model Online_Examination_System.Pages.Manage.MarkingModel
+@{ ViewData["Title"] = L["Manual Marking"]; }
+<div class="page-header">
+    <div>
+        <h1 class="h3 mb-1">@L["Manual Marking"]</h1>
+        <p class="text-muted small mb-0">@L["Essay answers must be marked before the final grade is released to the student."]</p>
+    </div>
+</div>
+<div class="card table-card">
+    <div class="card-body border-bottom">
+        <form method="get" class="filter-bar">
+            <select name="examId" class="form-select" data-autosubmit style="max-width:320px">
+                <option value="">@L["All exams"]</option>
+                @foreach (var e in Model.ExamOptions) { <option value="@e.Value" selected="@(e.Value == Model.ExamId?.ToString())">@e.Text</option> }
+            </select>
+            <div class="form-check ms-2">
+                <input class="form-check-input" type="checkbox" name="showMarked" value="true" id="sm" checked="@Model.ShowMarked" data-autosubmit />
+                <label class="form-check-label" for="sm">@L["Include already marked"]</label>
+            </div>
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead><tr><th>@L["Student"]</th><th>@L["Exam"]</th><th>@L["Submitted"]</th><th>@L["To mark"]</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var r in Model.Items.Items)
+            {
+                <tr>
+                    <td>@r.Student<div class="small text-muted">@r.UserName</div></td>
+                    <td>@r.Exam</td>
+                    <td class="small text-muted">@r.SubmittedAt?.ToString("g")</td>
+                    <td>@if (r.ToMark > 0) { <span class="badge text-bg-warning">@r.ToMark</span> } else { <span class="badge text-bg-success"><i class="bi bi-check"></i></span> }</td>
+                    <td class="text-end"><a asp-page="/Manage/Mark" asp-route-id="@r.Id" class="btn btn-sm btn-primary"><i class="bi bi-pencil-square"></i> @L["Mark"]</a></td>
+                </tr>
+            }
+            @if (Model.Items.TotalCount == 0) { <tr><td colspan="5"><div class="empty-state"><i class="bi bi-check2-all"></i>@L["Nothing to mark. Great job!"]</div></td></tr> }
+            </tbody>
+        </table>
+    </div>
+    <div class="card-body pt-0"><partial name="_Pager" model="Model.Items" /></div>
+</div>

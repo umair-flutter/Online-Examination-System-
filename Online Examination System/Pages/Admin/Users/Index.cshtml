@@ -1,0 +1,74 @@
+@page
+@model Online_Examination_System.Pages.Admin.Users.IndexModel
+@{ ViewData["Title"] = L["Users"]; }
+<div class="page-header">
+    <h1 class="h3 mb-0">@L["Users"]</h1>
+    <div class="d-flex flex-wrap gap-2">
+        <a asp-page="Import" class="btn btn-outline-secondary"><i class="bi bi-upload"></i> @L["Import"]</a>
+        <partial name="_ExportButtons" />
+        <a asp-page="Edit" class="btn btn-primary"><i class="bi bi-person-plus"></i> @L["New user"]</a>
+    </div>
+</div>
+<div class="card table-card">
+    <div class="card-body border-bottom">
+        <form method="get" class="filter-bar">
+            <input name="search" value="@Model.Search" class="form-control" placeholder="@L["Search..."]" />
+            <select name="role" class="form-select" data-autosubmit>
+                <option value="">@L["All roles"]</option>
+                @foreach (var r in Roles.All) { <option value="@r" selected="@(Model.Role == r)">@L[r]</option> }
+            </select>
+            <select name="status" class="form-select" data-autosubmit>
+                <option value="">@L["All statuses"]</option>
+                @foreach (var s in Enum.GetValues<UserStatus>()) { <option value="@s" selected="@(Model.Status == s)">@L[s.ToString()]</option> }
+            </select>
+            <button class="btn btn-outline-secondary"><i class="bi bi-search"></i></button>
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead><tr><th>@L["User"]</th><th>@L["Role"]</th><th>@L["Status"]</th><th>@L["Last login"]</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var u in Model.Items.Items)
+            {
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <partial name="_Avatar" model='new ApplicationUser { FullName = u.FullName, ProfilePicture = u.ProfilePicture }' />
+                            <div>
+                                <div class="fw-semibold">@u.FullName</div>
+                                <div class="small text-muted">@u.UserName · @u.Email @(u.StudentNumber != null ? "· " + u.StudentNumber : "")</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><span class="badge text-bg-light border">@L[u.Role]</span></td>
+                    <td>
+                        <div class="dropdown">
+                            <button class="btn btn-link p-0" data-bs-toggle="dropdown" type="button"><partial name="_StatusBadge" model="u.Status" /> <i class="bi bi-caret-down-fill small text-muted"></i></button>
+                            <ul class="dropdown-menu">
+                                @foreach (var s in Enum.GetValues<UserStatus>())
+                                {
+                                    <li>
+                                        <form method="post" asp-page-handler="Status" asp-route-id="@u.Id" asp-route-newStatus="@s">
+                                            <button class="dropdown-item" disabled="@(s == u.Status)">@L[s.ToString()]</button>
+                                        </form>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    </td>
+                    <td class="small text-muted">@(u.LastLoginAt?.ToString("g") ?? L["Never"])</td>
+                    <td class="text-end text-nowrap">
+                        <a asp-page="Attachments" asp-route-id="@u.Id" class="btn btn-sm btn-outline-secondary" title="@L["Attachments"]"><i class="bi bi-paperclip"></i> @u.Attachments</a>
+                        <a asp-page="Edit" asp-route-id="@u.Id" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i></a>
+                        <form method="post" asp-page-handler="Delete" asp-route-id="@u.Id" class="d-inline">
+                            <button class="btn btn-sm btn-outline-danger" data-confirm="@L["Delete this user permanently?"]"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            @if (Model.Items.TotalCount == 0) { <tr><td colspan="5"><div class="empty-state"><i class="bi bi-person-x"></i>@L["No users found."]</div></td></tr> }
+            </tbody>
+        </table>
+    </div>
+    <div class="card-body pt-0"><partial name="_Pager" model="Model.Items" /></div>
+</div>

@@ -1,0 +1,81 @@
+@page "{id:int}"
+@model Online_Examination_System.Pages.Student.ResultModel
+@{
+    var a = Model.Attempt;
+    ViewData["Title"] = a.Exam.Title;
+    var pending = a.Status == AttemptStatus.PendingMarking;
+    var correct = a.Answers.Count(x => x.IsCorrect == true);
+}
+<div class="page-header">
+    <div>
+        <a asp-page="Results" class="small text-decoration-none"><i class="bi bi-arrow-left"></i> @L["My Results"]</a>
+        <h1 class="h3 mb-0">@a.Exam.Title</h1>
+        <div class="text-muted small">@a.Exam.Subject.Name · @L["attempt"] @a.AttemptNumber · @a.SubmittedAt?.ToString("g")</div>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-page-handler="Pdf" asp-route-id="@a.Id" class="btn btn-outline-secondary"><i class="bi bi-file-earmark-pdf"></i> @L["Result slip"]</a>
+        @if (a.IsPassed && a.CertificateCode != null)
+        {
+            <a asp-page-handler="Certificate" asp-route-id="@a.Id" class="btn btn-success"><i class="bi bi-award"></i> @L["Certificate"]</a>
+        }
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-5">
+        <div class="card h-100 text-center">
+            <div class="card-body py-5">
+                @if (pending)
+                {
+                    <i class="bi bi-hourglass-split display-3 text-warning"></i>
+                    <h2 class="h4 mt-3">@L["Waiting for marking"]</h2>
+                    <p class="text-muted mb-0">@L["Some answers are marked by your teacher. You will be notified when your final grade is ready."]</p>
+                    <div class="mt-3 text-muted small">@L["Provisional score"]: @a.Score.ToString("0.##") / @a.TotalMarks.ToString("0.##")</div>
+                }
+                else
+                {
+                    <div class="display-3 fw-bold @(a.IsPassed ? "text-success" : "text-danger")">@a.Percentage.ToString("0.#")%</div>
+                    <div class="fs-5">@a.Score.ToString("0.##") / @a.TotalMarks.ToString("0.##") @L["marks"]</div>
+                    <span class="badge fs-6 mt-3 @(a.IsPassed ? "text-bg-success" : "text-bg-danger")">
+                        <i class="bi @(a.IsPassed ? "bi-trophy" : "bi-x-circle")"></i> @L[a.IsPassed ? "Passed" : "Failed"]
+                    </span>
+                    <div class="small text-muted mt-2">@L["Pass mark"]: @a.Exam.PassPercentage%</div>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="row g-3 text-center">
+                    @foreach (var (label, value) in new[]
+                    {
+                        ("Correct answers", $"{correct} / {a.QuestionIds.Count}"),
+                        ("Time taken", (a.SubmittedAt!.Value - a.StartedAt).FormatDuration()),
+                        ("Rank", Model.Participants > 0 ? $"{Model.Rank} / {Model.Participants}" : "-"),
+                        ("Class average", Model.Participants > 0 ? $"{Model.ClassAverage}%" : "-"),
+                    })
+                    {
+                        <div class="col-6"><div class="border rounded p-3"><div class="fw-bold fs-4">@value</div><div class="small text-muted">@L[label]</div></div></div>
+                    }
+                </div>
+                @if (a.AutoSubmitted) { <div class="alert alert-warning small mt-3 mb-0"><i class="bi bi-alarm"></i> @L["This attempt was submitted automatically."]</div> }
+                @if (a.IsPassed && a.CertificateCode != null) { <div class="small text-muted mt-3"><i class="bi bi-patch-check"></i> @L["Certificate ID"]: <code>@a.CertificateCode</code></div> }
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model.CanReview)
+{
+    <h2 class="h5 mb-3">@L["Answer review"]</h2>
+    <partial name="_AnswerReview" model="new AttemptReview(a, Model.Questions, true)" />
+}
+else if (Model.ReviewLater)
+{
+    <div class="alert alert-info"><i class="bi bi-info-circle"></i> @L["Correct answers will be available after the exam closes on {0}.", a.Exam.EndDate.ToString("g")]</div>
+}
+else
+{
+    <div class="alert alert-secondary"><i class="bi bi-eye-slash"></i> @L["Your teacher has chosen not to show the questions and answers for this exam."]</div>
+}

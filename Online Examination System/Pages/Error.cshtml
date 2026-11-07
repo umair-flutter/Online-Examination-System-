@@ -1,0 +1,23 @@
+﻿@page
+@model ErrorModel
+@{
+    ViewData["Title"] = L["Error"];
+    var (icon, title, text) = Model.StatusCodeValue switch
+    {
+        404 => ("bi-signpost-split", "Page not found", "The page you are looking for does not exist or has been moved."),
+        403 => ("bi-shield-lock", "Access denied", "You do not have permission to view this page."),
+        400 => ("bi-exclamation-circle", "Bad request", "The request could not be processed."),
+        _ => ("bi-bug", "Something went wrong", "An unexpected error occurred while processing your request.")
+    };
+}
+<div class="empty-state py-5">
+    <i class="bi @icon text-danger"></i>
+    <div class="display-4 fw-bold">@Model.StatusCodeValue</div>
+    <h1 class="h4">@L[title]</h1>
+    <p>@L[text]</p>
+    @if (Model.StatusCodeValue >= 500)
+    {
+        <p class="small">Request ID: <code>@Model.RequestId</code></p>
+    }
+    <a class="btn btn-primary" href="/">@L["Home"]</a>
+</div>

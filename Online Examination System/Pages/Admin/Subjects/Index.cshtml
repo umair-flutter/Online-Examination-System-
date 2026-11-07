@@ -1,0 +1,42 @@
+@page
+@model Online_Examination_System.Pages.Admin.Subjects.IndexModel
+@{ ViewData["Title"] = L["Subjects"]; }
+<div class="page-header">
+    <h1 class="h3 mb-0">@L["Subjects"]</h1>
+    <div class="d-flex gap-2">
+        <partial name="_ExportButtons" />
+        <a asp-page="Edit" class="btn btn-primary"><i class="bi bi-plus-lg"></i> @L["New subject"]</a>
+    </div>
+</div>
+<div class="card table-card">
+    <div class="card-body border-bottom">
+        <form method="get" class="filter-bar">
+            <input name="search" value="@Model.Search" class="form-control" placeholder="@L["Search..."]" />
+            <button class="btn btn-outline-secondary"><i class="bi bi-search"></i></button>
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead><tr><th>@L["Code"]</th><th>@L["Name"]</th><th>@L["Questions"]</th><th>@L["Exams"]</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var s in Model.Items.Items)
+            {
+                <tr>
+                    <td><span class="badge text-bg-light border">@s.Code</span></td>
+                    <td><div class="fw-semibold">@s.Name</div><div class="small text-muted">@s.Description.Truncate(80)</div></td>
+                    <td><a asp-page="/Manage/Questions/Index" asp-route-subjectId="@s.Id">@s.Questions</a></td>
+                    <td>@s.Exams</td>
+                    <td class="text-end text-nowrap">
+                        <a asp-page="Edit" asp-route-id="@s.Id" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i></a>
+                        <form method="post" asp-page-handler="Delete" asp-route-id="@s.Id" class="d-inline">
+                            <button class="btn btn-sm btn-outline-danger" data-confirm="@L["Delete this subject?"]"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            @if (Model.Items.TotalCount == 0) { <tr><td colspan="5"><div class="empty-state"><i class="bi bi-book"></i>@L["No subjects found."]</div></td></tr> }
+            </tbody>
+        </table>
+    </div>
+    <div class="card-body pt-0"><partial name="_Pager" model="Model.Items" /></div>
+</div>

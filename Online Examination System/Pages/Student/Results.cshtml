@@ -1,0 +1,34 @@
+@page
+@model Online_Examination_System.Pages.Student.ResultsModel
+@{ ViewData["Title"] = L["My Results"]; }
+<div class="page-header">
+    <h1 class="h3 mb-0">@L["My Results"]</h1>
+    <partial name="_ExportButtons" />
+</div>
+<div class="card table-card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead><tr><th>@L["Exam"]</th><th>@L["Submitted"]</th><th>@L["Score"]</th><th>@L["Result"]</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var a in Model.Items.Items)
+            {
+                <tr>
+                    <td><div class="fw-semibold">@a.Exam.Title</div><div class="small text-muted">@a.Exam.Subject.Name · @L["attempt"] @a.AttemptNumber</div></td>
+                    <td class="small text-muted">@a.SubmittedAt?.ToString("g")</td>
+                    <td>@a.Score.ToString("0.##") / @a.TotalMarks.ToString("0.##") <span class="small text-muted">(@a.Percentage.ToString("0.#")%)</span></td>
+                    <td>
+                        @if (a.Status == AttemptStatus.PendingMarking) { <partial name="_StatusBadge" model="a.Status" /> }
+                        else { <span class="badge @(a.IsPassed ? "text-bg-success" : "text-bg-danger")">@L[a.IsPassed ? "Passed" : "Failed"]</span> }
+                    </td>
+                    <td class="text-end text-nowrap">
+                        @if (a.IsPassed && a.CertificateCode != null) { <a asp-page="Result" asp-page-handler="Certificate" asp-route-id="@a.Id" class="btn btn-sm btn-outline-success" title="@L["Certificate"]"><i class="bi bi-award"></i></a> }
+                        <a asp-page="Result" asp-route-id="@a.Id" class="btn btn-sm btn-outline-primary">@L["View"]</a>
+                    </td>
+                </tr>
+            }
+            @if (Model.Items.TotalCount == 0) { <tr><td colspan="5"><div class="empty-state"><i class="bi bi-trophy"></i>@L["You have not completed any exams yet."]</div></td></tr> }
+            </tbody>
+        </table>
+    </div>
+    <div class="card-body pt-0"><partial name="_Pager" model="Model.Items" /></div>
+</div>

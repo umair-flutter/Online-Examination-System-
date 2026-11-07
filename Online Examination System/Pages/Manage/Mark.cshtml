@@ -1,0 +1,84 @@
+@page "{id:int}"
+@model Online_Examination_System.Pages.Manage.MarkModel
+@{ var a = Model.Attempt; ViewData["Title"] = L["Mark"] + " · " + a.Student.FullName; var i = 0; var n = 0; }
+<div class="page-header">
+    <div>
+        <a asp-page="/Manage/Marking" class="small text-decoration-none"><i class="bi bi-arrow-left"></i> @L["Manual Marking"]</a>
+        <h1 class="h3 mb-0">@a.Student.FullName</h1>
+        <div class="text-muted small">@a.Exam.Title · @L["attempt"] @a.AttemptNumber · @a.SubmittedAt?.ToString("g")</div>
+    </div>
+    <div class="text-end">
+        <div class="fs-4 fw-bold">@a.Score.ToString("0.##") / @a.TotalMarks.ToString("0.##")</div>
+        <partial name="_StatusBadge" model="a.Status" />
+    </div>
+</div>
+<form method="post">
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small"></div>
+    @foreach (var qid in a.QuestionIds)
+    {
+        if (!Model.Questions.TryGetValue(qid, out var q)) { continue; }
+        n++;
+        var ans = a.Answers.FirstOrDefault(x => x.QuestionId == qid);
+        if (ans is null) { continue; }
+        var essay = q.Type == QuestionType.Essay;
+        <div class="card mb-3 @(essay ? "border-warning" : "")">
+            <div class="card-body">
+                <div class="d-flex justify-content-between gap-3">
+                    <div class="fw-semibold text-pre">@n. @q.Text</div>
+                    <div><partial name="_StatusBadge" model="q.Type" /></div>
+                </div>
+                <div class="mt-2">
+                    @if (q.HasChoices)
+                    {
+                        <div class="small">
+                            <span class="text-muted">@L["Answer"]:</span> @(ans.IsAnswered ? string.Join(", ", q.Choices.Where(c => ans.SelectedIds.Contains(c.Id)).Select(c => c.Text)) : L["(not answered)"])
+                            <span class="text-success ms-2"><i class="bi bi-check-circle"></i> @string.Join(", ", q.Choices.Where(c => c.IsCorrect).Select(c => c.Text))</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="border rounded p-3 bg-body-tertiary text-pre">@(ans.IsAnswered ? ans.TextAnswer : L["(not answered)"])</div>
+                        @if (essay && ans.IsAnswered) { <div class="small text-muted mt-1">@(ans.TextAnswer?.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length ?? 0) @L["words"]</div> }
+                        @if (q.Type == QuestionType.ShortAnswer) { <div class="small text-success mt-1"><i class="bi bi-check-circle"></i> @q.CorrectShortAnswer?.Replace("|", " / ")</div> }
+                    }
+                </div>
+                <input type="hidden" name="Marks[@i].AnswerId" value="@ans.Id" />
+                <div class="row g-2 align-items-end mt-2">
+                    @if (!essay)
+                    {
+                        <div class="col-12 small text-muted">
+                            @L["Auto-graded"]: <b>@(ans.MarksAwarded?.ToString("0.##") ?? "0")</b> / @q.Marks
+                            <div class="form-check form-check-inline ms-3">
+                                <input class="form-check-input override" type="checkbox" name="Marks[@i].Override" value="true" id="ov@(i)" checked="@ans.ManuallyMarked" />
+                                <label class="form-check-label" for="ov@(i)">@L["Override"]</label>
+                            </div>
+                        </div>
+                    }
+                    <div class="col-sm-3 @(essay ? "" : "ov-field")">
+                        <label class="form-label small mb-1">@L["Marks"] (@L["max"] @q.Marks)</label>
+                        <input type="number" step="0.25" min="@(essay ? 0 : -q.Marks)" max="@q.Marks" name="Marks[@i].Marks" value="@(essay || ans.ManuallyMarked ? ans.MarksAwarded?.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")" class="form-control" />
+                    </div>
+                    <div class="col-sm-9 @(essay ? "" : "ov-field")">
+                        <label class="form-label small mb-1">@L["Feedback to student"]</label>
+                        <input name="Marks[@i].Feedback" value="@ans.Feedback" class="form-control" maxlength="2000" />
+                    </div>
+                </div>
+            </div>
+        </div>
+        i++;
+    }
+    <div class="d-flex gap-2 position-sticky bottom-0 bg-body py-3 border-top">
+        <button class="btn btn-primary" name="next" value="false"><i class="bi bi-check2"></i> @L["Save marks"]</button>
+        @if (Model.NextId != null) { <button class="btn btn-outline-primary" name="next" value="true">@L["Save & mark next"] <i class="bi bi-arrow-right"></i></button> }
+        <a asp-page="/Manage/Exams/Attempt" asp-route-id="@a.Id" class="btn btn-outline-secondary ms-auto">@L["View attempt"]</a>
+    </div>
+</form>
+@section Scripts {
+    <script>
+        document.querySelectorAll('.override').forEach(function (cb) {
+            var body = cb.closest('.card-body');
+            function sync() { body.querySelectorAll('.ov-field').forEach(function (f) { f.style.display = cb.checked ? '' : 'none'; }); }
+            cb.addEventListener('change', sync); sync();
+        });
+    </script>
+}

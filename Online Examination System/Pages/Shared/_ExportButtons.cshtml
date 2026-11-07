@@ -1,0 +1,11 @@
+@{
+    var qs = Context.Request.QueryString.Value ?? "";
+    string Link(string handler) => Context.Request.Path + (qs.Length > 0 ? qs + "&" : "?") + "handler=" + handler;
+}
+<div class="btn-group">
+    <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-download"></i> @L["Export"]</button>
+    <ul class="dropdown-menu dropdown-menu-end">
+        <li><a class="dropdown-item" href="@Link("Excel")"><i class="bi bi-file-earmark-excel text-success me-2"></i>Excel</a></li>
+        <li><a class="dropdown-item" href="@Link("Pdf")"><i class="bi bi-file-earmark-pdf text-danger me-2"></i>PDF</a></li>
+    </ul>
+</div>

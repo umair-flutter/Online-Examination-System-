@@ -1,0 +1,54 @@
+@model AttemptReview
+@{ var n = 0; }
+@foreach (var qid in Model.Attempt.QuestionIds)
+{
+    if (!Model.Questions.TryGetValue(qid, out var q)) { continue; }
+    n++;
+    var ans = Model.Attempt.Answers.FirstOrDefault(a => a.QuestionId == qid);
+    var pending = ans?.NeedsManualMarking == true && !ans.ManuallyMarked;
+    var css = pending ? "review-pending" : ans?.MarksAwarded >= q.Marks ? "review-correct" : "review-wrong";
+    var selected = ans?.SelectedIds ?? [];
+    var order = ans?.ChoiceOrderIds.Count > 0 ? ans.ChoiceOrderIds : q.Choices.OrderBy(c => c.Order).Select(c => c.Id).ToList();
+    <div class="card mb-3 @css">
+        <div class="card-body">
+            <div class="d-flex justify-content-between gap-3 mb-2">
+                <div class="fw-semibold text-pre">@n. @q.Text</div>
+                <div class="text-nowrap text-end">
+                    <span class="badge @(pending ? "text-bg-warning" : ans?.MarksAwarded >= q.Marks ? "text-bg-success" : ans?.MarksAwarded > 0 ? "text-bg-info" : "text-bg-danger")">
+                        @(pending ? L["Pending"] : (ans?.MarksAwarded ?? 0).ToString("0.##")) / @q.Marks.ToString("0.##")
+                    </span>
+                    <div class="small mt-1"><partial name="_StatusBadge" model="q.Type" /></div>
+                </div>
+            </div>
+            @if (!string.IsNullOrEmpty(q.ImagePath)) { <img src="@q.ImagePath" alt="" class="img-fluid rounded border mb-2" style="max-height:220px" /> }
+
+            @if (q.HasChoices)
+            {
+                foreach (var cid in order)
+                {
+                    var c = q.Choices.FirstOrDefault(x => x.Id == cid);
+                    if (c is null) { continue; }
+                    var isSel = selected.Contains(c.Id);
+                    var cls = Model.ShowCorrect ? (c.IsCorrect ? "is-correct" : isSel ? "is-wrong" : "") : "";
+                    <div class="choice-review @cls">
+                        <i class="bi @(isSel ? (q.Type == QuestionType.MultipleAnswer ? "bi-check-square-fill" : "bi-record-circle-fill") : (q.Type == QuestionType.MultipleAnswer ? "bi-square" : "bi-circle"))"></i>
+                        @(q.Type == QuestionType.TrueFalse ? L[c.Text] : c.Text)
+                        @if (Model.ShowCorrect && c.IsCorrect) { <i class="bi bi-check-lg float-end"></i> }
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="small text-muted">@L["Answer"]:</div>
+                <div class="border rounded p-2 bg-body-tertiary text-pre">@(ans?.IsAnswered == true ? ans.TextAnswer : L["(not answered)"])</div>
+                @if (Model.ShowCorrect && q.Type == QuestionType.ShortAnswer)
+                {
+                    <div class="small mt-2 text-success"><i class="bi bi-check-circle"></i> @L["Accepted answers"]: @q.CorrectShortAnswer?.Replace("|", " / ")</div>
+                }
+            }
+            @if (ans?.IsAnswered != true && q.HasChoices) { <div class="small text-danger mt-1"><i class="bi bi-dash-circle"></i> @L["Not answered"]</div> }
+            @if (!string.IsNullOrEmpty(ans?.Feedback)) { <div class="alert alert-info small py-2 mt-2 mb-0"><i class="bi bi-chat-left-text"></i> <b>@L["Feedback"]:</b> @ans.Feedback</div> }
+            @if (Model.ShowCorrect && !string.IsNullOrEmpty(q.Explanation)) { <div class="small text-muted mt-2"><i class="bi bi-lightbulb"></i> @q.Explanation</div> }
+        </div>
+    </div>
+}

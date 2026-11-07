@@ -1,0 +1,10 @@
+@model ApplicationUser?
+@{ var size = ViewData["size"] as int? ?? 34; }
+@if (!string.IsNullOrEmpty(Model?.ProfilePicture))
+{
+    <img src="@Model.ProfilePicture" alt="" class="rounded-circle object-fit-cover" width="@size" height="@size" />
+}
+else
+{
+    <span class="avatar-initials" style="width:@(size)px;height:@(size)px;font-size:@(size / 2.6)px">@Model?.FullName.Initials()</span>
+}

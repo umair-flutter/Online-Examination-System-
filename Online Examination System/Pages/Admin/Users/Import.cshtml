@@ -1,0 +1,26 @@
+@page
+@model Online_Examination_System.Pages.Admin.Users.ImportModel
+@{ ViewData["Title"] = L["Import users"]; }
+<div class="page-header">
+    <div>
+        <a asp-page="Index" class="small text-decoration-none"><i class="bi bi-arrow-left"></i> @L["Users"]</a>
+        <h1 class="h3 mb-0">@L["Import users"]</h1>
+    </div>
+</div>
+@if (Model.Result != null) { <partial name="_ImportResult" model="Model.Result" /> }
+<div class="card" style="max-width:720px">
+    <div class="card-body">
+        <ol class="small text-muted">
+            <li>@L["Download the Excel template."] <a asp-page-handler="Template"><i class="bi bi-file-earmark-excel"></i> users-template.xlsx</a></li>
+            <li>@L["Fill one user per row. Role must be Admin, Teacher or Student. Unknown classes are created automatically."]</li>
+            <li>@L["Upload the file."]</li>
+        </ol>
+        <form method="post" enctype="multipart/form-data">
+            <div class="input-group">
+                <input asp-for="Upload" type="file" accept=".xlsx" class="form-control" required />
+                <button class="btn btn-primary"><i class="bi bi-upload"></i> @L["Import"]</button>
+            </div>
+            <span asp-validation-for="Upload" class="text-danger small"></span>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,154 @@
+@page "{id:int?}"
+@model Online_Examination_System.Pages.Manage.Exams.EditModel
+@{ var title = Model.Input.Id == 0 ? L["New exam"] : L["Edit exam"]; ViewData["Title"] = title; }
+<div class="page-header">
+    <div>
+        <a asp-page="Index" class="small text-decoration-none"><i class="bi bi-arrow-left"></i> @L["Exams"]</a>
+        <h1 class="h3 mb-0">@title</h1>
+    </div>
+    @if (Model.Input.Id > 0)
+    {
+        <a asp-page="Questions" asp-route-id="@Model.Input.Id" class="btn btn-outline-primary"><i class="bi bi-list-check"></i> @L["Manage questions"]</a>
+    }
+</div>
+@if (Model.SubmittedCount > 0)
+{
+    <div class="alert alert-info small"><i class="bi bi-info-circle"></i> @L["{0} student(s) already submitted this exam. Changing the pass mark or marking rules will re-grade their results.", Model.SubmittedCount]</div>
+}
+<form method="post">
+    <input asp-for="Input.Id" type="hidden" />
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small"></div>
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">@L["General"]</div>
+                <div class="card-body row g-3">
+                    <div class="col-md-8">
+                        <label asp-for="Input.Title" class="form-label">@L["Title"]</label>
+                        <input asp-for="Input.Title" class="form-control" />
+                        <span asp-validation-for="Input.Title" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Input.SubjectId" class="form-label">@L["Subject"]</label>
+                        <select asp-for="Input.SubjectId" asp-items="Model.Subjects" class="form-select"><option value="">— @L["Select"] —</option></select>
+                        <span asp-validation-for="Input.SubjectId" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="Input.Description" class="form-label">@L["Description"]</label>
+                        <textarea asp-for="Input.Description" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="Input.Instructions" class="form-label">@L["Instructions for students"]</label>
+                        <textarea asp-for="Input.Instructions" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-calendar-event"></i> @L["Schedule & time limit"]</div>
+                <div class="card-body row g-3">
+                    <div class="col-md-4">
+                        <label asp-for="Input.StartDate" class="form-label">@L["Start date"]</label>
+                        <input asp-for="Input.StartDate" type="datetime-local" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Input.EndDate" class="form-label">@L["End date"]</label>
+                        <input asp-for="Input.EndDate" type="datetime-local" class="form-control" />
+                        <span asp-validation-for="Input.EndDate" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Input.DurationMinutes" class="form-label">@L["Duration (minutes)"]</label>
+                        <input asp-for="Input.DurationMinutes" class="form-control" />
+                        <span asp-validation-for="Input.DurationMinutes" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12 form-text mt-0">@L["Students can start the exam only between the start and end date. The countdown starts when they click Start and the exam submits automatically when it reaches zero."]</div>
+                </div>
+            </div>
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-sliders"></i> @L["Grading"]</div>
+                <div class="card-body row g-3">
+                    <div class="col-md-4">
+                        <label asp-for="Input.PassPercentage" class="form-label">@L["Pass percentage"]</label>
+                        <div class="input-group"><input asp-for="Input.PassPercentage" class="form-control" step="1" /><span class="input-group-text">%</span></div>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Input.NegativeMarking" class="form-label">@L["Negative marking"]</label>
+                        <select asp-for="Input.NegativeMarking" class="form-select">
+                            <option value="0">@L["None"]</option>
+                            <option value="0.25">-25% @L["of question marks"]</option>
+                            <option value="0.33">-33% @L["of question marks"]</option>
+                            <option value="0.5">-50% @L["of question marks"]</option>
+                            <option value="1">-100% @L["of question marks"]</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Input.MaxAttempts" class="form-label">@L["Max attempts"]</label>
+                        <input asp-for="Input.MaxAttempts" class="form-control" />
+                        <div class="form-text">0 = @L["unlimited"]</div>
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check form-switch">
+                            <input asp-for="Input.PartialCreditMultipleAnswer" class="form-check-input" />
+                            <label asp-for="Input.PartialCreditMultipleAnswer" class="form-check-label">@L["Partial credit for multiple answer questions"]</label>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input asp-for="Input.ShowAnswersToStudents" class="form-check-input" />
+                            <label asp-for="Input.ShowAnswersToStudents" class="form-check-label">@L["Show questions and correct answers to students after submission"]</label>
+                        </div>
+                        <div class="form-text">@L["When disabled, students only see their grade and not which questions they answered correctly."]</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><i class="bi bi-shield-lock"></i> @L["Security & anti-cheating"]</div>
+                <div class="card-body row g-3">
+                    <div class="col-md-6">
+                        <div class="form-check form-switch"><input asp-for="Input.RandomizeQuestions" class="form-check-input" /><label asp-for="Input.RandomizeQuestions" class="form-check-label">@L["Randomize question order per student"]</label></div>
+                        <div class="form-check form-switch"><input asp-for="Input.RandomizeChoices" class="form-check-input" /><label asp-for="Input.RandomizeChoices" class="form-check-label">@L["Shuffle answer choices"]</label></div>
+                        <div class="form-check form-switch"><input asp-for="Input.AllowBackNavigation" class="form-check-input" /><label asp-for="Input.AllowBackNavigation" class="form-check-label">@L["Allow going back to previous questions"]</label></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Input.AccessCode" class="form-label">@L["Access code"] <span class="text-muted small">(@L["optional"])</span></label>
+                        <input asp-for="Input.AccessCode" class="form-control" placeholder="@L["Students must enter this code to start"]" />
+                    </div>
+                    <div class="col-12"><hr class="my-1" /></div>
+                    <div class="col-md-6">
+                        <div class="form-check form-switch"><input asp-for="Input.EnableProctoring" class="form-check-input" /><label asp-for="Input.EnableProctoring" class="form-check-label">@L["Enable browser proctoring"]</label></div>
+                        <div class="form-text">@L["Requires full screen, records tab switches and leaving full screen, blocks copy, paste and right click."]</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Input.MaxViolations" class="form-label">@L["Auto-submit after violations"]</label>
+                        <input asp-for="Input.MaxViolations" class="form-control" />
+                        <div class="form-text">0 = @L["only record violations"]</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">@L["Status"]</div>
+                <div class="card-body">
+                    <select asp-for="Input.Status" class="form-select mb-2">
+                        @foreach (var s in Enum.GetValues<ExamStatus>()) { <option value="@s">@L[s.ToString()]</option> }
+                    </select>
+                    <span asp-validation-for="Input.Status" class="text-danger small"></span>
+                    <div class="form-text">@L["Only published exams are visible to students."]</div>
+                </div>
+            </div>
+            <div class="card mb-4">
+                <div class="card-header">@L["Assign to classes"]</div>
+                <div class="card-body">
+                    @foreach (var c in Model.ClassOptions)
+                    {
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="Input.ClassIds" value="@c.Value" id="c@(c.Value)" checked="@Model.Input.ClassIds.Contains(int.Parse(c.Value))" />
+                            <label class="form-check-label" for="c@(c.Value)">@c.Text</label>
+                        </div>
+                    }
+                    <div class="form-text">@L["Leave all unticked to make the exam available to every student."]</div>
+                </div>
+            </div>
+            <button class="btn btn-primary w-100 py-2"><i class="bi bi-check2"></i> @(Model.Input.Id == 0 ? L["Save & add questions"] : L["Save"])</button>
+        </div>
+    </div>
+</form>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

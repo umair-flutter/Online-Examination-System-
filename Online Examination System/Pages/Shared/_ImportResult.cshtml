@@ -1,0 +1,12 @@
+@model ImportResult?
+@if (Model != null)
+{
+    <div class="alert @(Model.Errors.Count == 0 ? "alert-success" : "alert-warning")">
+        <div class="fw-semibold"><i class="bi bi-check-circle"></i> @L["{0} record(s) imported.", Model.Imported]</div>
+        @if (Model.Errors.Count > 0)
+        {
+            <div class="mt-2">@L["{0} row(s) skipped:", Model.Errors.Count]</div>
+            <ul class="mb-0 small">@foreach (var e in Model.Errors.Take(50)) { <li>@e</li> }</ul>
+        }
+    </div>
+}
